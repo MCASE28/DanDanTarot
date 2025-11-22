@@ -1127,6 +1127,16 @@
     // IMAGE_MAP은 "다음" 또는 "폴더 선택" 시점에 초기화되므로 여기서는 비워둡니다.
     refreshStatus(); // 시트값 갱신은 그대로 호출
   })();
+
+  // 우클릭 방지
+  document.addEventListener('contextmenu', event => event.preventDefault());
+
+  // F12 개발자 도구 방지
+  document.addEventListener('keydown', function(event) {
+    if (event.keyCode === 123) { // F12 key
+        event.preventDefault();
+    }
+  });
 </script>
 </body>
 </html>
