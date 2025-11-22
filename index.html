@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<!-- 모바일 뷰포트 설정 (GAS doGet에서 처리하던 부분) -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>단단타로 Ver.2.5</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<style>
+  :root{
+    /* --- 기본 테마 색상 --- */
+    --bg:#0f1115;
+    --panel:#171a21;
+    --ink:#e7eaf0;
+    --muted:#a7b0bf;
+    --stroke:#2a2f3a;
+    --link:#9cc1ff;
+    --danger:#ff375f;
+    --frame:#e6edf5;
+
+    /* =========================================================
+       ✅ 스타일 커스터마이징 영역
+       ========================================================= */
+
+    /* --- 앱 레이아웃 --- */
+    --app-width: 1400px; /* 앱 전체 기준 폭 */
+    --memo-width: 420px; /* 메모장 너비 */
+    --memo-min-height: 720px; /* 메모장 최소 높이 */
+
+    /* --- 1. 기본 버튼 스타일 (Default) --- */
+    /* 모든 버튼에 공통으로 적용되는 기본값입니다. */
+    --btn-default-bg: #131722;
+    --btn-default-fg: #e5ecff;
+    --btn-default-border: var(--stroke);
+    --btn-default-font-weight: 900;
+    --btn-default-font-size: 16px;
+    --btn-default-height: 38px;
+    --btn-default-radius: 12px;
+    --btn-default-padding: 0 14px;
+
+    /* --- 2. 개별 버튼 스타일 --- */
+    /* 기본값을 그대로 사용하려면 이 섹션을 수정할 필요가 없습니다. */
+    /* 특정 버튼만 바꾸고 싶을 때, 아래 '--btn-default-...' 부분을 원하는 값으로 바꾸세요. */
+
+    /* -- #resetBtn (RESET) -- */
+    --btn-reset-bg: #85202a;
+    --btn-reset-fg: var(--btn-default-fg);
+    --btn-reset-border: var(--btn-default-border);
+    --btn-reset-font-weight: var(--btn-default-font-weight);
+    --btn-reset-font-size: var(--btn-default-font-size);
+    --btn-reset-height: var(--btn-default-height);
+    --btn-reset-radius: var(--btn-default-radius);
+    --btn-reset-padding: var(--btn-default-padding);
+
+    /* -- #decideBtn (결정) -- */
+    --btn-decide-bg: #2cc781;
+    --btn-decide-fg: var(--btn-default-fg);
+    --btn-decide-border: var(--btn-default-border);
+    --btn-decide-font-weight: var(--btn-default-font-weight);
+    --btn-decide-font-size: var(--btn-default-font-size);
+    --btn-decide-height: var(--btn-default-height);
+    --btn-decide-radius: var(--btn-default-radius);
+    --btn-decide-padding: var(--btn-default-padding);
+
+    /* -- #pickBtn (폴더선택) -- */
+    --btn-pick-bg: var(--btn-default-bg);
+    --btn-pick-fg: var(--btn-default-fg);
+    --btn-pick-border: var(--btn-default-border);
+    --btn-pick-font-weight: var(--btn-default-font-weight);
+    --btn-pick-font-size: var(--btn-default-font-size);
+    --btn-pick-height: var(--btn-default-height);
+    --btn-pick-radius: var(--btn-default-radius);
+    --btn-pick-padding: var(--btn-default-padding);
+
+    /* -- #nextBtn (다음) -- */
+    --btn-next-bg: var(--btn-default-bg);
+    --btn-next-fg: var(--btn-default-fg);
+    --btn-next-border: var(--btn-default-border);
+    --btn-next-font-weight: var(--btn-default-font-weight);
+    --btn-next-font-size: var(--btn-default-font-size);
+    --btn-next-height: var(--btn-default-height);
+    --btn-next-radius: var(--btn-default-radius);
+    --btn-next-padding: var(--btn-default-padding);
+
+    /* -- #memoToggle (메모장 켜기/끄기) -- */
+    --btn-memo-bg: var(--btn-default-bg);
+    --btn-memo-fg: var(--btn-default-fg);
+    --btn-memo-border: var(--btn-default-border);
+    --btn-memo-font-weight: var(--btn-default-font-weight);
+    --btn-memo-font-size: 14px; /* 기본값과 다르게 설정 */
+    --btn-memo-height: 32px;    /* 기본값과 다르게 설정 */
+    --btn-memo-radius: var(--btn-default-radius);
+    --btn-memo-padding: 0 10px; /* 기본값과 다르게 설정 */
+
+    /* -- .remove (카드 제거) -- */
+    --btn-danger-bg: var(--danger);
+    --btn-danger-fg: #fff;
+    --btn-danger-font-weight: 900;
+    --btn-danger-size: 28px;
+
+    /* ========================================================= */
+
+    /* 메모 열 너비: 펼침=var(--memo-width) / 접힘=0px (JS 토글) */
+    --MEMO_COL: 0px;
+  }
+
+  *{box-sizing:border-box}
+  html,body{
+    height:100%; margin:0; background:var(--bg); color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  }
+
+  /* 앱 컨테이너: 기준 폭으로 가운데 정렬 */
+  .app{
+    position:relative;
+    width:var(--app-width);
+    min-height:100vh;
+    margin:0 auto;
+    padding:16px 16px 96px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) var(--MEMO_COL);
+    gap:16px;
+    transition:grid-template-columns .25s ease, width .25s ease;
+  }
+
+  /* ===== 컨트롤: 2줄, 가운데 정렬 ===== */
+  .controls{display:flex; flex-direction:column; gap:8px; margin-bottom:24px; align-items:center}
+  .controls-row{display:flex; align-items:center; gap:12px; justify-content:center}
+  .status-box{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.18); color:#fff;
+    font-size:22px; font-weight:800; cursor:pointer;
+  }
+  .mini-spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.25);border-top-color:#000;display:none;animation:spin .9s linear infinite}
+  .mini-spin.on{display:inline-block}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* .skewed 공통 구조 스타일 */
+  .skewed{
+    min-width:108px;
+    letter-spacing:.02em;
+    transform:skewX(-16deg);
+    cursor:pointer;
+    border: none; /* 테두리는 각 버튼에서 정의 */
+  }
+  .skewed > span{ display: inline-block; transform: skewX(16deg); }
+
+  /* 각 버튼별 개별 스타일 적용 */
+  #resetBtn, #decideBtn, #pickBtn, #nextBtn, #memoToggle {
+    display: inline-block;
+  }
+
+  #resetBtn {
+    height: var(--btn-reset-height);
+    padding: var(--btn-reset-padding);
+    border: 1px solid var(--btn-reset-border);
+    border-radius: var(--btn-reset-radius);
+    background: var(--btn-reset-bg);
+    color: var(--btn-reset-fg);
+    font-weight: var(--btn-reset-font-weight);
+    font-size: var(--btn-reset-font-size);
+  }
+  #decideBtn {
+    height: var(--btn-decide-height);
+    padding: var(--btn-decide-padding);
+    border: 1px solid var(--btn-decide-border);
+    border-radius: var(--btn-decide-radius);
+    background: var(--btn-decide-bg);
+    color: var(--btn-decide-fg);
+    font-weight: var(--btn-decide-font-weight);
+    font-size: var(--btn-decide-font-size);
+  }
+  #pickBtn {
+    height: var(--btn-pick-height);
+    padding: var(--btn-pick-padding);
+    border: 1px solid var(--btn-pick-border);
+    border-radius: var(--btn-pick-radius);
+    background: var(--btn-pick-bg);
+    color: var(--btn-pick-fg);
+    font-weight: var(--btn-pick-font-weight);
+    font-size: var(--btn-pick-font-size);
+  }
+  #nextBtn {
+    height: var(--btn-next-height);
+    padding: var(--btn-next-padding);
+    border: 1px solid var(--btn-next-border);
+    border-radius: var(--btn-next-radius);
+    background: var(--btn-next-bg);
+    color: var(--btn-next-fg);
+    font-weight: var(--btn-next-font-weight);
+    font-size: var(--btn-next-font-size);
+  }
+  #memoToggle {
+    min-width: auto;
+    height: var(--btn-memo-height);
+    padding: var(--btn-memo-padding);
+    border: 1px solid var(--btn-memo-border);
+    border-radius: var(--btn-memo-radius);
+    background: var(--btn-memo-bg);
+    color: var(--btn-memo-fg);
+    font-weight: var(--btn-memo-font-weight);
+    font-size: var(--btn-memo-font-size);
+  }
+
+  .search-wrap{position:relative; width:260px; flex:0 0 260px}
+  .search-input{width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--stroke);
+    background:#0c0f14; color:#fff; font-size:15px; outline:none;}
+  .dropdown{position:absolute; left:0; right:0; top:100%; margin-top:6px; z-index:20;
+    background:#0c0f14; border:1px solid var(--stroke); border-radius:12px; display:none; max-height:300px; overflow:auto;}
+  .dropdown.show{display:block}
+  .opt{padding:10px 12px; display:flex; justify-content:space-between; gap:8px; font-size:14px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,.04)}
+  .opt.disabled{opacity:.35; pointer-events:none}
+  .opt:hover,.opt.active{background:#131722}
+
+  .flip{position:relative; width:210px; height:44px; border-radius:12px; border:1px solid var(--stroke);
+    background:#0c0f14; display:flex; align-items:center; user-select:none; font-weight:900; font-size:15px; flex:0 0 210px}
+  .flip input{display:none}
+  .flip .track{position:absolute; inset:4px; border-radius:10px; background:#10141c; display:flex; overflow:hidden;}
+  .flip .seg{flex:1; display:flex; align-items:center; justify-content:center; z-index:1; color:#9fb0c7}
+  .flip .thumb{position:absolute; top:4px; bottom:4px; left:4px; width:calc(50% - 4px);
+    border-radius:10px; background:#b6f7c1; color:#0a2012; display:flex; align-items:center; justify-content:center; transition:left .2s ease}
+  .flip input:checked ~ .thumb{left:calc(50% + 0px); background:#d7b6f7; color:#1a0f22}
+
+  /* ===== 보드 & 카드 ===== */
+  .board{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:14px; align-content:start;}
+  .cardItem{user-select:none}
+  .cardBox{display:flex; flex-direction:column; align-items:center; gap:8px; transition:transform .15s ease}
+  .cardItem:hover .cardBox{transform:scale(1.05)}
+
+  .card{width:250px; height:400px; cursor:pointer; border:2px dashed #2b303b; border-radius:14px;
+        background:#0c0f14 center/cover no-repeat; transition:transform .25s ease; position:relative; z-index:10}
+  .card.has-img{ border:none; }        
+  .card.rev{transform:rotate(180deg)}
+  .cap-row{width:250px; display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .cap{flex:1 1 auto; text-align:center; font-weight:700; font-size:18px; color:#cdd5e3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .remove{
+    flex:0 0 auto;
+    width:var(--btn-danger-size);
+    height:var(--btn-danger-size);
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.18);
+    background:var(--btn-danger-bg);
+    color:var(--btn-danger-fg);
+    font-weight:var(--btn-danger-font-weight);
+    display:grid;
+    place-items:center;
+    cursor:pointer;
+  }
+
+  /* ===== 메모장 ===== */
+  .memo{
+    background:#171a21; border:1px solid var(--stroke); border-radius:14px; padding:12px; display:flex; flex-direction:column;
+    min-height: var(--memo-min-height);
+  }
+  .memo .memo-body{display:block}
+  .memo textarea{
+    height: var(--memo-min-height);
+    min-height: var(--memo-min-height);
+    flex: 0 0 var(--memo-min-height);
+    width:100%;
+    resize:none;
+    background:#0c0f14;
+    border:1px solid var(--stroke);
+    border-radius:12px;
+    color:#fff;
+    font-size:24px;
+    line-height:1.4;
+    padding:10px;
+    overflow-y:auto;
+  }
+
+  /* 접힘: 보드 풀폭, 버튼 우상단 도킹 */
+  .memo.collapsed{
+    position:absolute; right:16px; top:16px; width:auto;
+    padding:0; border:none; background:transparent;
+    min-height: 0;
+  }
+  .memo.collapsed .memo-body, .memo.collapsed h3{display:none}
+  .memo.collapsed .memo-header{display:block}
+
+  /* ===== 타이틀 ===== */
+  .veil{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.66); backdrop-filter: blur(14px)}
+  .veil.hide{display:none}
+  .modal{width:1100px; padding:40px 24px; border-radius:16px; border:1px solid var(--stroke); background:#0c0f14}
+  .modal-grid{ display:grid; grid-template-columns:520px auto; gap:24px; align-items:start; }
+
+  .preview{width:500px; height:500px; margin:0 auto 12px; border-radius:12px; background:#0c0f14}
+  .preview img{width:100%; height:100%; object-fit:contain}
+
+  .intro-box{ display:inline-block; background:#121723; border:1px solid #2a3342; border-radius:12px; padding:14px; max-width:600px; max-height:500px; }
+  .intro-title{margin:0 0 8px 0; font-weight:800; color:#cfe2ff; letter-spacing:.02em}
+  .intro-read{display:inline-block; width:fit-content; max-width:560px; max-height:430px;
+    margin:0; padding:8px 4px 6px 0; background:transparent; border:none;
+    color:#e9eefb; font-size:14px; line-height:1.5;
+    white-space:normal; overflow-x:hidden; overflow-y:auto; word-break:keep-all; overflow-wrap:break-word;}
+  .intro-read p{margin:.4rem 0}
+  .intro-read a{color:#9cc1ff; text-decoration:underline}
+  .intro-read img{max-width:100%; height:auto; border-radius:6px; display:inline-block}
+
+  .pickerRow{display:flex; align-items:center; gap:12px; margin-top:18px}
+  .pickerRow .grow{flex:1}
+  .spinner{width:18px; height:18px; border-radius:50%; border:3px solid #3a4456; border-top-color:#9cc1ff; animation:spin .9s linear infinite; display:none}
+  .spinner.on{display:inline-block}
+
+  /* ===== 라이트박스(프레임+캡션, 배율 연동) ===== */
+  #cardOverlay.veil{background:rgba(0,0,0,.78); z-index:10000}
+  .lightWrap{
+    --fs-scale:1; /* JS에서 동적으로 세팅 (캡션 폰트/패딩 스케일) */
+    border:2px solid var(--frame); border-radius:18px;
+    background:linear-gradient(180deg,#0b0f16,#0a1018 60%,#0a0e14);
+    box-shadow:0 14px 60px rgba(0,0,0,.6); overflow:hidden;
+    display:flex; flex-direction:column; align-items:stretch;
+  }
+  .lightImg{width:100%; height:100%; object-fit:contain; background:#080c12}
+  .lightCap{
+    padding:calc(10px * var(--fs-scale)) calc(14px * var(--fs-scale));
+    border-top:1px solid rgba(230,237,245,.15);
+    text-align:center; color:#e9ecff; letter-spacing:.02em; font-weight:900;
+    font-size:clamp(14px, calc(16px * var(--fs-scale)), 28px);
+  }
+</style>
+</head>
+
+<body>
+  <div class="app" id="appRoot">
+    <section class="left">
+      <div class="controls">
+        <!-- 1줄: 상태 -->
+        <div class="controls-row top">
+          <div id="statusBox" class="status-box" title="클릭하여 시트값 갱신(GitHub Pages에서는 작동하지 않음)">
+            <span class="label">현재 :</span>
+            <span id="statusVal" class="val"></span>
+            <span id="statusSpinner" class="mini-spin"></span>
+          </div>
+        </div>
+        <!-- 2줄: RESET / 검색 / 정역 / 결정 -->
+        <div class="controls-row bottom">
+          <button id="resetBtn" class="skewed" type="button" disabled>RESET</button>
+
+          <div class="search-wrap">
+            <input id="search" class="search-input" type="text" placeholder="검색: 영문/한글 일부 일치 (예: 킹, 펜타클)" autocomplete="off" />
+            <div id="dropdown" class="dropdown"></div>
+          </div>
+
+          <label class="flip" title="정방향 / 역방향">
+            <input id="rev" type="checkbox" />
+            <div class="track"><div class="seg">정방향</div><div class="seg">역방향</div></div>
+            <div class="thumb" id="flipThumb">정방향</div>
+          </label>
+
+          <button id="decideBtn" class="skewed" type="button"><span>결정</span></button>
+        </div>
+      </div>
+
+      <div id="board" class="board"></div>
+    </section>
+
+    <!-- 메모장 (기본: 접힘 / 버튼은 앱 우상단 도킹) -->
+    <aside class="memo collapsed" id="memo">
+      <div class="memo-header" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <h3 style="margin:0">메모장</h3>
+        <button id="memoToggle" class="skewed small" type="button" aria-pressed="true">메모장 켜기</button>
+      </div>
+      <div class="memo-body">
+        <textarea placeholder="자유롭게 메모하세요. (서버 저장 없음)"></textarea>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===== 타이틀(소개/Log/폴더 검사 UI) ===== -->
+  <div id="veil" class="veil">
+    <div class="modal">
+      <!-- 소개글 / Log 토글 -->
+      <div style="display:flex; justify-content:flex-end; margin:-12px 0 8px;">
+        <label class="flip" style="width:260px; height:44px;">
+          <input id="readFlip" type="checkbox" />
+          <div class="track"><div class="seg">소개글</div><div class="seg">Log</div></div>
+          <div class="thumb" id="readThumb">소개글</div>
+        </label>
+      </div>
+
+      <div class="modal-grid">
+        <div id="preview" class="preview"><img id="titleImg" alt="title"></div>
+
+        <div class="intro-box">
+          <h3 id="introTitle" class="intro-title">단단타로란?</h3>
+
+          <div id="introContent" class="intro-read" aria-hidden="false">
+            <p style='line-height:2'><strong>단단타로</strong>는 숲 스트리머 <font size=5><strong>‘다니얀’</strong></font>
+              <a href="https://ch.sooplive.co.kr/daniyan1030" target="_blank" rel="noopener">
+                <img src="https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.sooplive.co.kr&size=16" width="20" height="20" alt="soop"></a> 님의 타로 컨텐츠에<br>
+                도움이 되었으면 하는 마음에 만든 툴입니다.</p>
+            <p style='line-height:2'>— <em>사용법</em><br>
+              1) <span style="color:#54A9FF"><font size=4><strong>"폴더 선택"</strong></font></span>을 클릭하여 카드 이미지가 있는 폴더를 선택합니다.<br>
+              선택할 경로는 <span style="color:#ff8c8c"><font size=3>카드가 뭉쳐진 폴더</font></span>를 선택하시면 됩니다.<br>
+              <span style="color:#ff8c8c">카드 이미지는 서버저장을 하지 않고 앱 기능을 위해서만 동작합니다.</span><br>
+              카드 이름의 정상적용 여부는 Log 버튼 클릭 시 확인 가능<br><br>
+              2) <span style="color:#54A9FF"><font size=4><strong>“다음”</strong></font></span> 클릭 후 시작합니다. 이미지가 없어도 OK (권장X) <br><br>
+            </p>
+            <p style='line-height:2'>— <em>자세한 내용</em><br>
+              빕페(네이버 카페)의 게시글 참고: <a href="https://cafe.naver.com/bver99/140021" target="_blank" rel="noopener">링크</a></p>
+          </div>
+
+          <pre id="logContent" class="intro-read" style="display:none; white-space:pre-wrap;"></pre>
+        </div>
+      </div>
+
+      <!-- 오른쪽 정렬 고정 -->
+      <div id="pickerRow" class="pickerRow">
+        <div id="debugSlot" style="color:#a7b0bf; font-size:12px"></div>
+        <div class="grow"></div>
+        <span id="spin" class="spinner"></span>
+        <button id="pickBtn" class="skewed" type="button">폴더선택</button>
+        <button id="nextBtn" class="skewed" type="button">다음</button>
+        <input id="dirInput" type="file" webkitdirectory multiple style="display:none" />
+      </div>
+
+      <div id="msg" class="center-msg">타이틀 이미지를 불러오는 중…</div>
+
+      <div style="margin-top:6px; font-size:12px; color:#7f8aa3">
+        <p>만든이 : 옳다쿠나, 본 코드는 생성형 컨텐츠(AI) 활용 프로젝트입니다.</p>
+        <p>타이틀 : 도바 from 빕페 (감사합니다!) </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 카드 라이트박스 -->
+  <div id="cardOverlay" class="veil hide">
+    <div id="lightWrap" class="lightWrap" role="dialog" aria-modal="true" aria-label="Card preview">
+      <img id="lightImg" class="lightImg" alt="선택 카드">
+      <div id="lightCap" class="lightCap"></div>
+    </div>
+  </div>
+
+<script>
+  /* =========================================================
+     [MIGRATED DATA] code.gs의 데이터를 여기로 옮겼습니다.
+     ========================================================= */
+
+  /** 초기 Log 텍스트 */
+  const LOG_TEXT = [
+    'Ver. 2.5.1 (GitHub)',
+    '> Google Apps Script에서 GitHub Pages로 이전되었습니다.',
+    'Ver. 2.5.1',
+    '> 카드 이미지 새로 생성, 버튼과 배열의 간격 일부 조정',
+    'Ver. 2.5',
+    '> 카드 배열 재정리, 해상도 1920x1080 기준으로 작성하였습니다',
+    '> 카드 제거 기능을 버튼으로 교체 / 카드 클릭 시 확대 기능 추가',
+    'Ver. 2.0',
+    '> 기존 타로데이 시트 연동 기능은 정적 페이지에서 비활성화 됩니다.',
+    '  이름의 흰 영역을 클릭하거나, RESET 시 해당 값 갱신',
+    '> 카드 한장만 제거 기능 추가, UX개선, 연출 개선',
+    '> 카드 마우스 오버 시 확대 기능 추가',
+    'Ver. 1.5',
+    '> 타이틀 화면 재구성 및 카드 이미지 로직 개선',
+    'Ver. 1.0',
+    '> 앱 최초배포',
+  ].join('\n');
+
+  function getInitialLogText() {
+    return LOG_TEXT;
+  }
+
+  /** 78장 카드 메타 데이터 생성 함수 (displayName, searchKeywords 분리) */
+  function getTarotDB() {
+    const major = [
+      { num:0,  eng:"The Fool",           kor:["바보"] },
+      { num:1,  eng:"The Magician",       kor:["마술사"] },
+      { num:2,  eng:"The High Priestess", kor:["여사제","고위여사제"] },
+      { num:3,  eng:"The Empress",        kor:["여제","여황제"] },
+      { num:4,  eng:"The Emperor",        kor:["황제"] },
+      { num:5,  eng:"The Hierophant",     kor:["교황"] },
+      { num:6,  eng:"The Lovers",         kor:["연인"] },
+      { num:7,  eng:"The Chariot",        kor:["전차"] },
+      { num:8,  eng:"Strength",           kor:["힘"] },
+      { num:9,  eng:"The Hermit",         kor:["은둔자"] },
+      { num:10, eng:"Wheel of Fortune",   kor:["운명의 수레바퀴", "운수"] },
+      { num:11, eng:"Justice",            kor:["정의"] },
+      { num:12, eng:"The Hanged Man",     kor:["매달린 남자", "매달린놈"] },
+      { num:13, eng:"Death",              kor:["죽음"] },
+      { num:14, eng:"Temperance",         kor:["절제"] },
+      { num:15, eng:"The Devil",          kor:["악마"] },
+      { num:16, eng:"The Tower",          kor:["탑"] },
+      { num:17, eng:"The Star",           kor:["별"] },
+      { num:18, eng:"The Moon",           kor:["달"] },
+      { num:19, eng:"The Sun",            kor:["태양"] },
+      { num:20, eng:"Judgement",          kor:["심판"] },
+      { num:21, eng:"The World",          kor:["세계"] }
+    ];
+
+    const suits = [
+      { key:"Wands",  kor:"완드", alt: "지팡이" },
+      { key:"Swords", kor:"소드", alt: "검" },
+      { key:"Cups",   kor:"컵", alt: "잔" },
+      { key:"Coins",  kor:"코인", alt: "펜타클" }
+    ];
+    const courts = [
+      { rank:"Page",   kor:"페이지", alt: "시종" },
+      { rank:"Knight", kor:"나이트", alt: "기사" },
+      { rank:"Queen",  kor:"퀸", alt: "여왕" },
+      { rank:"King",   kor:"킹", alt: "왕" },
+    ];
+
+    const cards = [];
+    const sanitize = (str) => (str ||'').toLowerCase().replace(/\s+/g,'');
+
+    // 메이저 22
+    major.forEach(m => {
+      cards.push({
+        id: `M${m.num}`,
+        type: "major",
+        num: m.num,
+        eng: m.eng,
+        displayName: m.kor[0],
+        searchKeywords: [sanitize(m.eng), ...m.kor.map(sanitize)]
+      });
+    });
+
+    // 숫자 40 (각 슈트 1~10)
+    for (const s of suits) {
+      for (let n=1; n<=10; n++) {
+        cards.push({
+          id: `m_${s.key.toLowerCase()}_${n}`,
+          type: "minor",
+          suit: s.key,
+          num: n,
+          court: false,
+          eng: `${s.key}${n}`,
+          displayName: `${s.alt} ${n}`,
+          searchKeywords: [
+            sanitize(`${s.key}${n}`),
+            sanitize(`${s.kor}${n}`),
+            sanitize(`${s.alt}${n}`),
+          ]
+        });
+      }
+    }
+
+    // 궁정 16 (각 슈트 × 4)
+    for (const s of suits) {
+      for (const c of courts) {
+        cards.push({
+          id: `m_${s.key.toLowerCase()}_${c.rank.toLowerCase()}`,
+          type: "minor",
+          suit: s.key,
+          num: null,
+          court: true,
+          rank: c.rank,
+          eng: `${s.key} ${c.rank}`,
+          displayName: `${s.alt} ${c.alt}`,
+          searchKeywords: [
+            sanitize(`${s.key}${c.rank}`),
+            sanitize(`${s.kor}${c.rank}`),
+            sanitize(`${s.alt}${c.rank}`),
+            sanitize(`${s.kor}${c.alt}`),
+            sanitize(`${s.alt}${c.alt}`),
+          ]
+        });
+      }
+    }
+    return cards;
+  }
+
+  /* =========================================================
+     ✅ Google Apps Script Web App URL
+     - api.gs.txt 파일 배포 후 생성된 URL을 여기에 붙여넣으세요.
+     ========================================================= */
+  const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbyAcnbEtX81fDYFfRUt1hYBvdD7w2YNlHwSD9WBRox2XX8d02sgkY7dujzn0ebLyCrz3g/exec';
+
+  /* =========================================================
+     ✅ 앱 전체 기준 폭 (여기 값만 바꾸면 전부 재계산)
+     - 컨트롤 2줄 가운데 정렬 / 카드 그리드 / 메모 펼침 폭
+     예) 1400 → 1920 변경 시, 1920 기준으로 재배치
+     ========================================================= */
+  const APP_WIDTH = 1400;
+
+  /* =========================================================
+     ✅ 전체화면(라이트박스) 배율/캡션 스케일 조정 포인트
+     ========================================================= */
+  const FS_MAX_VW = 0.9;
+  const FS_MAX_VH = 0.9;
+  const FS_CAPTION_H = 80;
+  const FS_BASE_IMG_W = 80;
+
+  /* =========================================================
+     ✅ (추가) 메모장 세로 높이 직접 조정 지점
+     ========================================================= */
+  const MEMO_MIN_HEIGHT_PX = 720;
+
+  const TITLE_URL = 'https://i.postimg.cc/43m6kQPS/image.png';
+  const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+
+  let ALL_CARDS = [], IMAGE_MAP = {}, selected = null, picked = [];
+  let pickedSet = new Set();
+
+  /* 기준 폭과 메모 높이를 CSS 변수로 반영 */
+  document.documentElement.style.setProperty('--APP_WIDTH', APP_WIDTH + 'px');
+  document.documentElement.style.setProperty('--MEMO_MIN_H', MEMO_MIN_HEIGHT_PX + 'px');
+
+  // DOM refs
+  const elSearch = document.getElementById('search');
+  const elDrop   = document.getElementById('dropdown');
+  const elDecide = document.getElementById('decideBtn');
+  const elReset  = document.getElementById('resetBtn');
+  const elBoard  = document.getElementById('board');
+  const elRev    = document.getElementById('rev');
+  const flipThumb= document.getElementById('flipThumb');
+  const elMemo   = document.getElementById('memo');
+  const elMemoToggle = document.getElementById('memoToggle');
+
+  const elTitleImg = document.getElementById('titleImg');
+  const elPick = document.getElementById('pickBtn');
+  const elNext = document.getElementById('nextBtn');
+  const elDir  = document.getElementById('dirInput');
+  const elMsg  = document.getElementById('msg');
+  const elSpin = document.getElementById('spin');
+  const elDebugSlot = document.getElementById('debugSlot');
+  const elReadFlip = document.getElementById('readFlip');
+  const elReadThumb= document.getElementById('readThumb');
+  const elIntro = document.getElementById('introContent');
+  const elLog   = document.getElementById('logContent');
+
+  // 상태 패널 refs
+  const elStatusBox = document.getElementById('statusBox');
+  const elStatusVal = document.getElementById('statusVal');
+  const elStatusSpin= document.getElementById('statusSpinner');
+
+  // 라이트박스
+  const overlay   = document.getElementById('cardOverlay');
+  const lightWrap = document.getElementById('lightWrap');
+  const lightImg  = document.getElementById('lightImg');
+  const lightCap  = document.getElementById('lightCap');
+
+  /* ====== "현재:" 패널 (GAS API 연동) ====== */
+  function statusLoading(on){ elStatusSpin.classList.toggle('on', !!on); }
+  
+  function statusShowValues(c6, d6){
+    const sep = (c6 && d6) ? ' / ' : '';
+    elStatusVal.textContent = `${c6}${sep}${d6}`;
+  }
+  
+  function refreshStatus(){
+    const placeholderUrl = '';
+    if (!GAS_API_URL || GAS_API_URL === placeholderUrl) {
+      statusShowValues("API 주소 필요", "");
+      console.warn(`index.html의 GAS_API_URL 상수에 배포된 웹 앱의 URL을 입력해주세요.`);
+      return;
+    }
+
+    statusLoading(true);
+
+    // 1. 고유한 콜백 함수 이름을 생성합니다.
+    const callbackName = 'jsonp_callback_' + Math.round(100000 * Math.random());
+    
+    // 2. API가 호출할 전역 콜백 함수를 window 객체에 정의합니다.
+    window[callbackName] = function(data) {
+        // 4. API 호출이 끝나면, 생성했던 스크립트 태그와 전역 함수를 정리합니다.
+        document.body.removeChild(script);
+        delete window[callbackName];
+        
+        // 5. 가져온 데이터를 처리합니다.
+        if (data.success) {
+            statusShowValues(data.c6, data.d6);
+        } else {
+            console.error('Error from GAS API:', data.error);
+            statusShowValues("API 오류", "");
+        }
+        statusLoading(false);
+    };
+
+    // 3. 동적으로 <script> 태그를 생성하여 API를 호출합니다.
+    // URL에 `callback=콜백함수이름` 파라미터를 추가합니다.
+    const script = document.createElement('script');
+    script.src = GAS_API_URL + (GAS_API_URL.includes('?') ? '&' : '?') + 'callback=' + callbackName;
+    
+    // 타임아웃 또는 네트워크 오류 처리
+    script.onerror = function() {
+        document.body.removeChild(script);
+        delete window[callbackName];
+        console.error('Error fetching status from GAS API via JSONP.');
+        statusShowValues("연결 실패", "");
+        statusLoading(false);
+    };
+
+    document.body.appendChild(script);
+  }
+  elStatusBox.addEventListener('click', refreshStatus); // 클릭으로 갱신
+
+  /* 소개글/Log 토글 */
+  function setReadMode(isLog){
+    elReadThumb.textContent = isLog ? 'Log' : '소개글';
+    elIntro.style.display   = isLog ? 'none' : 'block';
+    elIntro.setAttribute('aria-hidden', isLog ? 'true' : 'false');
+    elLog.style.display     = isLog ? 'block' : 'none';
+    elLog.setAttribute('aria-hidden', isLog ? 'false' : 'true');
+    document.getElementById('introTitle').textContent = isLog ? 'Log' : '단단타로란?';
+  }
+  elReadFlip.addEventListener('change', ()=> setReadMode(elReadFlip.checked));
+  setReadMode(false);
+
+  /* 초기 Log 텍스트 로드 (동기 처리로 변경) */
+  elLog.textContent = getInitialLogText();
+
+
+  /* 타이틀 이미지 */
+  (function initTitle(){
+    elTitleImg.src = PLACEHOLDER;
+    const test = new Image();
+    test.onload  = () => { elTitleImg.src = TITLE_URL; elMsg.textContent=''; };
+    test.onerror = () => { elMsg.textContent = '타이틀 이미지 로드 실패'; };
+    test.src = TITLE_URL;
+  })();
+
+  let folderSelected = false; // 폴더 선택 여부 플래그
+
+  // 기본 이미지 맵 생성 헬퍼
+  function getDefaultImageMap() {
+    const map = {};
+    for (const card of ALL_CARDS) {
+        const filename = expectedFilenameForCard(card);
+        map[cardId(card)] = `./assets/img/${filename}`;
+    }
+    return map;
+  }
+
+  // "다음" 버튼 로직 수정
+  elNext.addEventListener('click', ()=> {
+    if (!folderSelected) {
+        IMAGE_MAP = getDefaultImageMap();
+        elMsg.textContent = '기본 이미지 세트를 사용합니다.';
+    }
+    document.getElementById('veil').classList.add('hide');
+  });
+
+
+  /* 카드 식별/파일명 */
+  const MAJOR_NAME_MAP = {
+    0:'Fool', 1:'Magician', 2:'HighPriestess', 3:'Empress', 4:'Emperor',
+    5:'Hierophant', 6:'Lovers', 7:'Chariot', 8:'Strength', 9:'Hermit',
+    10:'WheelofFortune', 11:'Justice', 12:'HangedMan', 13:'Death',
+    14:'Temperance', 15:'Devil', 16:'Tower', 17:'Star', 18:'Moon',
+    19:'Sun', 20:'Judgement', 21:'World'
+  };
+  const cardId = c => c?.id || c?.eng;
+  const expectedFilenameForCard = c => (
+    c.type==='major' ? `${MAJOR_NAME_MAP[c.num]}.png`
+      : (!c.court ? `${c.suit}${String(c.num).padStart(2,'0')}.png` : `${c.suit}${c.rank}.png`)
+  );
+
+  /* 폴더 선택(webkitdirectory) + 로그 (수정됨) */
+  elPick.addEventListener('click', ()=> elDir.click());
+  elDir.addEventListener('change', async (e)=>{
+    if (!e.target.files?.length) return;
+
+    folderSelected = true;
+    elSpin.classList.add('on');
+    elMsg.textContent='폴더 스캔 중 — 이미지 매칭 및 폴백 처리 중…';
+
+    try {
+        // 1. 기본 이미지 맵으로 시작
+        const defaultMap = getDefaultImageMap();
+        // 2. 사용자 파일과 병합하여 최종 이미지 맵 생성
+        const scanResult = await scanAndMergeFiles(e.target.files, defaultMap);
+        IMAGE_MAP = scanResult.imageMap;
+
+        applyScanResult(scanResult);
+        updateLogAfterScan(scanResult);
+    } finally {
+        elSpin.classList.remove('on');
+    }
+  });
+
+  // 스캔 및 병합 로직 (신규)
+  async function scanAndMergeFiles(fileList, baseImageMap) {
+    const userFiles = Array.from(fileList).filter(f => /\.png$/i.test(f.name));
+    const userFileNames = userFiles.map(f => f.name);
+    const userFileSet = new Set(userFileNames);
+
+    const expectedFileNames = ALL_CARDS.map(expectedFilenameForCard);
+    const finalMap = { ...baseImageMap }; // 기본 이미지 맵으로 시작
+    let userMatchedCount = 0;
+
+    // 사용자 폴더에 일치하는 파일이 있으면 덮어쓰기
+    for (const card of ALL_CARDS) {
+        const expectedName = expectedFilenameForCard(card);
+        if (userFileSet.has(expectedName)) {
+            const file = userFiles.find(f => f.name === expectedName);
+            if (file) {
+                finalMap[cardId(card)] = URL.createObjectURL(file);
+                userMatchedCount++;
+            }
+        }
+    }
+    
+    const missing = expectedFileNames.filter(name => !userFileSet.has(name));
+    const extras = userFileNames.filter(name => !expectedFileNames.includes(name));
+
+    return {
+        imageMap: finalMap,
+        mapped: userMatchedCount,
+        total: ALL_CARDS.length,
+        missing: missing,
+        extras: extras,
+        fileCount: userFiles.length
+    };
+  }
+
+  // 스캔 결과 적용 UI (수정됨)
+  function applyScanResult({mapped,total,missing,extras}){
+    if (mapped === 0) {
+        elMsg.textContent = '선택한 폴더에 매칭된 이미지가 없습니다. 기본 이미지를 사용합니다.';
+    } else if (mapped < total) {
+        elMsg.textContent = `사용자 이미지 ${mapped}개 + 기본 이미지 ${total - mapped}개를 사용합니다.`;
+    } else {
+        elMsg.textContent = '모든 카드가 사용자 이미지와 매칭되었습니다!';
+    }
+    const parts = [];
+    if (missing.length) parts.push(`누락 ${missing.length}`);
+    if (extras.length)  parts.push(`여분 ${extras.length}`);
+    elDebugSlot.textContent = parts.join(' · ');
+  }
+
+  // 로그 업데이트 UI (수정됨)
+  function updateLogAfterScan({mapped,total,missing,extras,fileCount}){
+    const now = new Date();
+    const header =
+      `# 단단타로 — 폴더 검사 결과\n` +
+      `시각: ${now.toLocaleString('ko-KR')}\n` +
+      `선택 폴더 내 .png 파일 수: ${fileCount}\n` +
+      `매칭된 사용자 파일: ${mapped} / ${total}\n` +
+      `${total - mapped}개는 ./assets/img/ 의 기본 이미지로 대체됩니다.\n`;
+    const tip =
+      `\n※ 참고: 파일명은 규칙과 대소문자까지 일치해야 하며 확장자는 .png 권장입니다.\n` +
+      `   예) Wands01.png / Judgement.png / CoinsKing.png\n`;
+    const missBlock  = missing.length ? `\n[폴더에 없어 기본값 사용 ${missing.length}개]\n- ` + missing.join('\n- ') : ``;
+    const extraBlock = extras.length  ? `\n\n[여분(규칙 밖) ${extras.length}개]\n- ` + extras.join('\n- ') : ``;
+    elLog.textContent = header + tip + missBlock + extraBlock;
+    elLog.dataset.hasScan = '1';
+  }
+
+  /* 정/역 라벨 */
+  function syncFlip(){ flipThumb.textContent = elRev.checked ? '역방향' : '정방향'; }
+  syncFlip();
+  elRev.addEventListener('change', syncFlip);
+
+  /* ===== 보드 렌더 (수정됨) ===== */
+  function renderBoard(){
+    elBoard.innerHTML = picked.map((c, idx)=>{
+      const url   = IMAGE_MAP[cardId(c)] || '';
+      const displayName = c.displayName || c.eng;
+      const revCls = c.reversed ? ' rev' : '';
+      const hasImg = url ? ' has-img' : '';
+
+      return `
+        <div class="cardItem" data-idx="${idx}" title="${displayName}">
+          <div class="cardBox">
+            <div class="card${revCls}${hasImg}"
+                style="${url ? `background-image:url('${url}')` : ''}"
+                aria-label="${displayName}"></div>
+            <div class="cap-row">
+              <div class="cap" title="${displayName}">${displayName}</div>
+              <button class="remove" title="카드 제거">–</button>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  function setDecide(on){ on ? elDecide.removeAttribute('disabled') : elDecide.setAttribute('disabled','true'); }
+  function updateReset(){ picked.length ? elReset.removeAttribute('disabled') : elReset.setAttribute('disabled','true'); }
+
+  /* ===== 라이트박스 (수정됨) ===== */
+  function sizeLightbox(){
+    const vw = Math.min(window.innerWidth,  document.documentElement.clientWidth  || window.innerWidth);
+    const vh = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight);
+    const maxW = vw * FS_MAX_VW, maxH = vh * FS_MAX_VH, aspect = 5/8;
+
+    let imgW = maxW, imgH = imgW / aspect;
+    if (imgH + FS_CAPTION_H > maxH) { imgH = maxH - FS_CAPTION_H; imgW = imgH * aspect; }
+
+    lightWrap.style.width  = `${Math.floor(imgW)}px`;
+    lightWrap.style.height = `${Math.floor(imgH + FS_CAPTION_H)}px`;
+    lightImg.style.height  = `${Math.floor(imgH)}px`;
+
+    const scale = Math.max(0.75, Math.min(1.8, imgW / FS_BASE_IMG_W));
+    lightWrap.style.setProperty('--fs-scale', scale.toFixed(3));
+  }
+  function openFullscreen(card){
+    const url = IMAGE_MAP[cardId(card)] || '';
+    lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+    lightImg.src = url;
+
+    const displayName = card.displayName || card.eng;
+    lightCap.textContent = displayName + (card.reversed ? ' (역방향)' : '');
+
+    sizeLightbox();
+    overlay.classList.remove('hide');
+  }
+  overlay.addEventListener('click', ()=> overlay.classList.add('hide'));
+  window.addEventListener('resize', ()=> { if(!overlay.classList.contains('hide')) sizeLightbox(); });
+
+  // 카드 클릭 → 전체화면 / 삭제
+  elBoard.addEventListener('click', (e)=>{
+    const item = e.target.closest('.cardItem'); if(!item) return;
+    const idx = Number(item.dataset.idx); if(Number.isNaN(idx)) return;
+
+    if (e.target.closest('.remove')) {
+      const removed = picked[idx];
+      picked.splice(idx,1);
+      pickedSet.delete(cardId(removed));
+      renderBoard(); updateReset();
+      return;
+    }
+    if (e.target.closest('.card') || e.target.closest('.cap-row') || e.target.closest('.cardBox')) {
+      openFullscreen(picked[idx]);
+    }
+  });
+
+  /* 검색/결정/리셋 (수정됨) */
+  function runSearch(){
+    const qRaw = elSearch.value.trim();
+    selected = null;
+    setDecide(false);
+
+    if(!qRaw){
+      elDrop.classList.remove('show');
+      elDrop.innerHTML='';
+      return;
+    }
+
+    const q = qRaw.toLowerCase().replace(/\s+/g,'');
+    const hits = ALL_CARDS.filter(c=>{
+      if(pickedSet.has(cardId(c))) return false; // 이미 배치된 카드 제외
+      return c.searchKeywords.some(kw => kw.includes(q));
+    }).slice(0,60);
+
+    if(!hits.length){
+      elDrop.classList.remove('show');
+      elDrop.innerHTML='';
+      return;
+    }
+    elDrop.innerHTML = hits.map((c,i)=>
+      `<div class="opt${i===0?' active':''}" data-id="${cardId(c)}">
+         <span>${c.displayName}</span><small>${c.eng}</small>
+       </div>`
+    ).join('');
+    elDrop.classList.add('show');
+  }
+  elSearch.addEventListener('input', runSearch);
+  elDrop.addEventListener('click', e=>{
+    const opt=e.target.closest('.opt'); if(!opt) return;
+    const cid = opt.dataset.id;
+    const cand = ALL_CARDS.find(c=>cardId(c)===cid) || null;
+    if(cand && pickedSet.has(cardId(cand))) return;
+    selected = cand;
+    elSearch.value = selected ? selected.displayName : ''; // 노출 이름으로 input 값 설정
+    elDrop.classList.remove('show');
+    setDecide(!!selected);
+  });
+
+  // [추가] 검색창 키보드 탐색(위/아래/엔터/ESC)
+  elSearch.addEventListener('keydown', e => {
+    if (!elDrop.classList.contains('show')) return;
+
+    const options = Array.from(elDrop.querySelectorAll('.opt:not(.disabled)'));
+    if (options.length === 0) return;
+
+    switch (e.key) {
+      case 'ArrowDown':
+      case 'ArrowUp': {
+        e.preventDefault();
+        let currentIndex = options.findIndex(opt => opt.classList.contains('active'));
+        
+        options[currentIndex]?.classList.remove('active');
+
+        if (e.key === 'ArrowDown') {
+          currentIndex = (currentIndex + 1) % options.length;
+        } else {
+          currentIndex = (currentIndex - 1 + options.length) % options.length;
+        }
+        
+        options[currentIndex].classList.add('active');
+        options[currentIndex].scrollIntoView({ block: 'nearest' });
+        break;
+      }
+
+      case 'Enter': {
+        e.preventDefault();
+        const activeOption = elDrop.querySelector('.opt.active');
+        activeOption?.click(); // 기존 클릭 로직 재사용
+        break;
+      }
+
+      case 'Escape': {
+        elSearch.value = '';
+        elDrop.classList.remove('show');
+        selected = null;
+        setDecide(false);
+        break;
+      }
+    }
+  });
+
+  document.addEventListener('click', e=>{ if(!e.target.closest('.search-wrap')) elDrop.classList.remove('show'); });
+
+  elDecide.addEventListener('click', ()=>{
+    if(!selected) return;
+    const cid = cardId(selected);
+    if(pickedSet.has(cid)) { setDecide(false); return; }
+    picked.push({...selected, reversed: elRev.checked});
+    pickedSet.add(cid);
+    renderBoard(); updateReset();
+    selected = null; elSearch.value=''; setDecide(false);
+  });
+
+  elReset.addEventListener('click', ()=>{
+    picked = []; pickedSet.clear(); selected=null; elSearch.value=''; elDrop.classList.remove('show'); elRev.checked=false; syncFlip(); renderBoard(); updateReset();
+    refreshStatus(); // RESET 시 시트값 갱신
+  });
+
+  /* 메모 토글 → 보드 폭 재계산 (열 너비 0/420px 전환) */
+  function syncMemoLayout(){
+    const col = elMemo.classList.contains('collapsed') ? '0px' : '420px';
+    document.documentElement.style.setProperty('--MEMO_COL', col);
+  }
+  elMemoToggle.addEventListener('click', ()=>{
+    const willHide = !elMemo.classList.contains('collapsed');
+    elMemo.classList.toggle('collapsed', willHide);
+    elMemoToggle.textContent = willHide ? 'Show' : 'Hide';
+    elMemoToggle.setAttribute('aria-pressed', willHide ? 'true' : 'false');
+    syncMemoLayout();
+  });
+  syncMemoLayout(); // 초기(접힘) 상태 반영
+
+  // 초기 DB 로드 (수정됨)
+  (function init(){
+    ALL_CARDS = getTarotDB();
+    // IMAGE_MAP은 "다음" 또는 "폴더 선택" 시점에 초기화되므로 여기서는 비워둡니다.
+    refreshStatus(); // 시트값 갱신은 그대로 호출
+  })();
+</script>
+</body>
+</html>
