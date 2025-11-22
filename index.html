@@ -5,6 +5,8 @@
 <!-- 모바일 뷰포트 설정 (GAS doGet에서 처리하던 부분) -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>단단타로 Ver.3</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
 
 <style>
@@ -328,7 +330,7 @@
       <div class="controls">
         <!-- 1줄: 상태 -->
         <div class="controls-row top">
-          <div id="statusBox" class="status-box" title="클릭하여 시트값 갱신(GitHub Pages에서는 작동하지 않음)">
+          <div id="statusBox" class="status-box" title="클릭하여 갱신">
             <span class="label">현재 :</span>
             <span id="statusVal" class="val"></span>
             <span id="statusSpinner" class="mini-spin"></span>
@@ -339,7 +341,7 @@
           <button id="resetBtn" class="skewed" type="button" disabled>RESET</button>
 
           <div class="search-wrap">
-            <input id="search" class="search-input" type="text" placeholder="검색: 영문/한글 일부 일치 (예: 킹, 펜타클)" autocomplete="off" />
+            <input id="search" class="search-input" type="text" placeholder="검색: 영문/한글 일부 일치" autocomplete="off" />
             <div id="dropdown" class="dropdown"></div>
           </div>
 
@@ -396,7 +398,7 @@
               선택할 경로는 <span style="color:#ff8c8c"><font size=3>카드가 뭉쳐진 폴더</font></span>를 선택하시면 됩니다.<br>
               <span style="color:#ff8c8c">폴더를 선택하지 않으면 기본 카드를 사용합니다.</span><br>
               카드 이름의 정상적용 여부는 Log 버튼 클릭 시 확인 가능<br><br>
-              2) <span style="color:#54A9FF"><font size=4><strong>“다음”</strong></font></span> 클릭 후 시작합니다. 이미지가 없어도 OK (권장X) <br><br>
+              2) <span style="color:#54A9FF"><font size=4><strong>“다음”</strong></font></span> 클릭 후 시작합니다. 이미지가 없어도 OK <br><br>
             </p>
             <p style='line-height:2'>— <em>자세한 내용</em><br>
               빕페(네이버 카페)의 게시글 참고: <a href="https://cafe.naver.com/bver99/159313" target="_blank" rel="noopener">링크</a></p>
