@@ -933,16 +933,51 @@
 
     lightWrap.style.width  = `${Math.floor(imgW)}px`;
     lightWrap.style.height = `${Math.floor(imgH + FS_CAPTION_H)}px`;
-    lightImg.style.height  = `${Math.floor(imgH)}px`;
+    
+    const mediaElement = lightWrap.querySelector('video.lightImg') || lightImg;
+    if (mediaElement) {
+        mediaElement.style.height = `${Math.floor(imgH)}px`;
+    }
 
     const scale = Math.max(0.75, Math.min(1.8, imgW / FS_BASE_IMG_W));
     lightWrap.style.setProperty('--fs-scale', scale.toFixed(3));
   }
   function openFullscreen(card){
-    const url = IMAGE_MAP[cardId(card)] || '';
-    lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
-    lightImg.src = url;
+    // 이전에 생성된 비디오가 있다면 제거
+    const oldVideo = lightWrap.querySelector('video.lightImg');
+    if (oldVideo) {
+      oldVideo.remove();
+    }
+    // 이미지 기본 숨김
+    lightImg.style.display = 'none';
+    lightImg.src = PLACEHOLDER;
 
+    const cardFileNameBase = expectedFilenameForCard(card).replace(/\.png$/, '');
+    const videoUrl = `./assets/vid/${cardFileNameBase}.webm`;
+
+    const video = document.createElement('video');
+    video.className = 'lightImg'; // 이미지와 동일한 클래스 사용
+    video.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+    video.autoplay = true;
+    video.muted = true;
+    video.loop = true;
+    video.controls = false;
+    video.setAttribute('playsinline', '');
+
+    // 비디오 로드 실패 시, 기존 이미지 표시 로직으로 대체
+    video.onerror = function() {
+      this.remove(); // 실패한 비디오 요소 제거
+      const imageUrl = IMAGE_MAP[cardId(card)] || '';
+      lightImg.src = imageUrl;
+      lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+      lightImg.style.display = 'block';
+    };
+    
+    video.src = videoUrl;
+    
+    // 비디오 요소를 이미지 요소 앞에 삽입
+    lightWrap.insertBefore(video, lightImg);
+    
     const displayName = card.displayName || card.eng;
     lightCap.textContent = displayName + (card.reversed ? ' (역방향)' : '');
 
