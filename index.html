@@ -912,8 +912,8 @@
     }
 
     const parts = [];
-    if (missing.length) parts.push(`이미지 누락 ${missing.length}`);
-    if (imgExtras.length)  parts.push(`이미지 여분 ${imgExtras.length}`);
+    if (missing.length) parts.push(`이미지 누락 ${missing.length}개`);
+    if (imgExtras.length)  parts.push(`여분 이미지 ${imgExtras.length}개`);
     elDebugSlot.textContent = parts.join(' · ');
   }
 
@@ -934,7 +934,7 @@
     const tip =
       `\n\n※ 참고: 선택한 폴더 바로 아래에 'img', 'vid' 폴더가 있어야 합니다.\n` +
       `   파일명은 규칙과 대소문자까지 일치해야 합니다.\n` +
-      `   이미지: (폴더)/img/Wands01.png\n`+
+      `   이미지: (폴더)/img/Wands01.png\n`+ 
       `   비디오: (폴더)/vid/Wands01.webm\n`;
     
     const missBlock  = missing.length ? `\n[이미지 누락(기본값 사용) ${missing.length}개]\n- ` + missing.join('\n- ') : ``;
@@ -1108,7 +1108,7 @@
       elDrop.innerHTML='';
       return;
     }
-    elDrop.innerHTML = hits.map((c,i)=>
+    elDrop.innerHTML = hits.map((c,i)=> 
       `<div class="opt${i===0?' active':''}" data-id="${cardId(c)}">
          <span>${c.displayName}</span><small>${c.eng}</small>
        </div>`
