@@ -1101,12 +1101,13 @@
         video.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
         video.muted = true;
         video.loop = true;
+        video.autoplay = true;
         video.controls = false;
         video.setAttribute('playsinline', '');
         video.src = mediaUrl;
 
-        video.addEventListener('mouseenter', () => video.play());
-        video.addEventListener('mouseleave', () => video.pause());
+        // 비디오 자동 재생 시작
+        video.play().catch(e => console.warn("Autoplay was prevented:", e));
 
         // 비디오 로드 실패 시, (기본 또는 사용자) 이미지로 대체
         video.onerror = function() {
