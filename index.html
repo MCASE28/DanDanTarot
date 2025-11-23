@@ -653,7 +653,7 @@
   const TITLE_URL = 'https://i.postimg.cc/43m6kQPS/image.png';
   const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
-  let ALL_CARDS = [], IMAGE_MAP = {}, selected = null, picked = [];
+  let ALL_CARDS = [], IMAGE_MAP = {}, VIDEO_MAP = {}, selected = null, picked = [];
   let pickedSet = new Set();
 
   /* 기준 폭과 메모 높이를 CSS 변수로 반영 */
@@ -817,87 +817,131 @@
 
     folderSelected = true;
     elSpin.classList.add('on');
-    elMsg.textContent='폴더 스캔 중 — 이미지 매칭 및 폴백 처리 중…';
+    elMsg.textContent='폴더 스캔 중 — img/ 및 vid/ 폴더를 확인합니다…';
 
     try {
-        // 1. 기본 이미지 맵으로 시작
-        const defaultMap = getDefaultImageMap();
-        // 2. 사용자 파일과 병합하여 최종 이미지 맵 생성
-        const scanResult = await scanAndMergeFiles(e.target.files, defaultMap);
+        const scanResult = await scanUserFolder(e.target.files);
         IMAGE_MAP = scanResult.imageMap;
+        VIDEO_MAP = scanResult.videoMap;
 
         applyScanResult(scanResult);
         updateLogAfterScan(scanResult);
     } finally {
         elSpin.classList.remove('on');
+        e.target.value = ''; // 다음 선택을 위해 초기화
     }
   });
 
   // 스캔 및 병합 로직 (신규)
-  async function scanAndMergeFiles(fileList, baseImageMap) {
-    const userFiles = Array.from(fileList).filter(f => /\.png$/i.test(f.name));
-    const userFileNames = userFiles.map(f => f.name);
-    const userFileSet = new Set(userFileNames);
+  async function scanUserFolder(fileList) {
+    const userFiles = Array.from(fileList);
+    
+    // webkitRelativePath가 '폴더명/img/파일.png' 형태이므로 정규식으로 안전하게 추출
+    const imgFiles = userFiles.filter(f => /[\/\\]img[\/\\]/i.test(f.webkitRelativePath) && /\.(png|jpg|jpeg)$/i.test(f.name));
+    const vidFiles = userFiles.filter(f => /[\/\\]vid[\/\\]/i.test(f.webkitRelativePath) && /\.webm$/i.test(f.name));
 
-    const expectedFileNames = ALL_CARDS.map(expectedFilenameForCard);
-    const finalMap = { ...baseImageMap }; // 기본 이미지 맵으로 시작
-    let userMatchedCount = 0;
+    const finalImageMap = getDefaultImageMap(); // 1. 기본 이미지로 시작
+    const finalVideoMap = {};
 
-    // 사용자 폴더에 일치하는 파일이 있으면 덮어쓰기
-    for (const card of ALL_CARDS) {
-        const expectedName = expectedFilenameForCard(card);
-        if (userFileSet.has(expectedName)) {
-            const file = userFiles.find(f => f.name === expectedName);
-            if (file) {
-                finalMap[cardId(card)] = URL.createObjectURL(file);
-                userMatchedCount++;
-            }
+    let userImgMatchedCount = 0;
+    let userVidMatchedCount = 0;
+
+    // 카드 이름을 파일명과 매칭하기 위한 맵 (빠른 탐색용)
+    const cardByFileName = ALL_CARDS.reduce((acc, card) => {
+        const fileName = expectedFilenameForCard(card);
+        acc[fileName] = card;
+        return acc;
+    }, {});
+
+    // 2. 사용자 이미지 덮어쓰기
+    for (const file of imgFiles) {
+        const card = cardByFileName[file.name];
+        if (card) {
+            finalImageMap[cardId(card)] = URL.createObjectURL(file);
+            userImgMatchedCount++;
         }
     }
+
+    // 3. 사용자 비디오 매칭
+    for (const file of vidFiles) {
+        const videoNameBase = file.name.replace(/\.webm$/i, '');
+        // 비디오 파일명 (예: 'Strength.webm')과 일치하는 카드를 찾음
+        const card = ALL_CARDS.find(c => expectedFilenameForCard(c).replace(/\.png$/i, '') === videoNameBase);
+        if (card) {
+            finalVideoMap[cardId(card)] = URL.createObjectURL(file);
+            userVidMatchedCount++;
+        }
+    }
+
+    const expectedImgNames = ALL_CARDS.map(expectedFilenameForCard);
+    const userImgNames = imgFiles.map(f => f.name);
+    const missingImgs = expectedImgNames.filter(name => !userImgNames.includes(name));
+    const extraImgs = userImgNames.filter(name => !expectedImgNames.includes(name));
     
-    const missing = expectedFileNames.filter(name => !userFileSet.has(name));
-    const extras = userFileNames.filter(name => !expectedFileNames.includes(name));
+    const expectedVidNames = ALL_CARDS.map(c => expectedFilenameForCard(c).replace(/\.png$/, '.webm'));
+    const userVidNames = vidFiles.map(f => f.name);
+    const extraVids = userVidNames.filter(name => !expectedVidNames.includes(name));
+
 
     return {
-        imageMap: finalMap,
-        mapped: userMatchedCount,
+        imageMap: finalImageMap,
+        videoMap: finalVideoMap,
+        imgMapped: userImgMatchedCount,
+        vidMapped: userVidMatchedCount,
         total: ALL_CARDS.length,
-        missing: missing,
-        extras: extras,
-        fileCount: userFiles.length
+        missing: missingImgs,
+        imgExtras: extraImgs,
+        vidExtras: extraVids,
+        imgFileCount: imgFiles.length,
+        vidFileCount: vidFiles.length
     };
   }
 
   // 스캔 결과 적용 UI (수정됨)
-  function applyScanResult({mapped,total,missing,extras}){
-    if (mapped === 0) {
-        elMsg.textContent = '선택한 폴더에 매칭된 이미지가 없습니다. 기본 이미지를 사용합니다.';
-    } else if (mapped < total) {
-        elMsg.textContent = `사용자 이미지 ${mapped}개 + 기본 이미지 ${total - mapped}개를 사용합니다.`;
+  function applyScanResult({imgMapped,vidMapped,total,missing,imgExtras}){
+    if (imgMapped === 0) {
+        elMsg.textContent = '선택한 폴더의 img/ 하위 폴더에 매칭된 이미지가 없습니다. 기본 이미지를 사용합니다.';
+    } else if (imgMapped < total) {
+        elMsg.textContent = `사용자 이미지 ${imgMapped}개 + 기본 이미지 ${total - imgMapped}개를 사용합니다.`;
     } else {
         elMsg.textContent = '모든 카드가 사용자 이미지와 매칭되었습니다!';
     }
+    
+    if (vidMapped > 0) {
+      elMsg.textContent += ` (커스텀 비디오 ${vidMapped}개 포함)`;
+    }
+
     const parts = [];
-    if (missing.length) parts.push(`누락 ${missing.length}`);
-    if (extras.length)  parts.push(`여분 ${extras.length}`);
+    if (missing.length) parts.push(`이미지 누락 ${missing.length}`);
+    if (imgExtras.length)  parts.push(`이미지 여분 ${imgExtras.length}`);
     elDebugSlot.textContent = parts.join(' · ');
   }
 
   // 로그 업데이트 UI (수정됨)
-  function updateLogAfterScan({mapped,total,missing,extras,fileCount}){
+  function updateLogAfterScan({imgMapped, vidMapped, total, missing, imgExtras, vidExtras, imgFileCount, vidFileCount}){
     const now = new Date();
     const header =
       `# 단단타로 — 폴더 검사 결과\n` +
       `시각: ${now.toLocaleString('ko-KR')}\n` +
-      `선택 폴더 내 .png 파일 수: ${fileCount}\n` +
-      `매칭된 사용자 파일: ${mapped} / ${total}\n` +
-      `${total - mapped}개는 ./assets/img/ 의 기본 이미지로 대체됩니다.\n`;
+      `선택 폴더 내 'img' 폴더의 .png/.jpg 파일 수: ${imgFileCount}\n` +
+      `선택 폴더 내 'vid' 폴더의 .webm 파일 수: ${vidFileCount}\n` +
+      `\n[이미지 매칭 결과]\n` +
+      `매칭된 사용자 이미지: ${imgMapped} / ${total}\n` +
+      `${total - imgMapped}개는 ./assets/img/ 의 기본 이미지로 대체됩니다.\n` +
+      `\n[비디오 매칭 결과]\n` +
+      `매칭된 사용자 비디오: ${vidMapped}개`;
+
     const tip =
-      `\n※ 참고: 파일명은 규칙과 대소문자까지 일치해야 하며 확장자는 .png 권장입니다.\n` +
-      `   예) Wands01.png / Judgement.png / CoinsKing.png\n`;
-    const missBlock  = missing.length ? `\n[폴더에 없어 기본값 사용 ${missing.length}개]\n- ` + missing.join('\n- ') : ``;
-    const extraBlock = extras.length  ? `\n\n[여분(규칙 밖) ${extras.length}개]\n- ` + extras.join('\n- ') : ``;
-    elLog.textContent = header + tip + missBlock + extraBlock;
+      `\n\n※ 참고: 선택한 폴더 바로 아래에 'img', 'vid' 폴더가 있어야 합니다.\n` +
+      `   파일명은 규칙과 대소문자까지 일치해야 합니다.\n` +
+      `   이미지: (폴더)/img/Wands01.png\n`+
+      `   비디오: (폴더)/vid/Wands01.webm\n`;
+    
+    const missBlock  = missing.length ? `\n[이미지 누락(기본값 사용) ${missing.length}개]\n- ` + missing.join('\n- ') : ``;
+    const imgExtraBlock = imgExtras.length  ? `\n\n[여분 이미지(규칙 밖) ${imgExtras.length}개]\n- ` + imgExtras.join('\n- ') : ``;
+    const vidExtraBlock = vidExtras.length  ? `\n\n[여분 비디오(규칙 밖) ${vidExtras.length}개]\n- ` + vidExtras.join('\n- ') : ``;
+    
+    elLog.textContent = header + tip + missBlock + imgExtraBlock + vidExtraBlock;
     elLog.dataset.hasScan = '1';
   }
 
@@ -952,50 +996,67 @@
     lightWrap.style.setProperty('--fs-scale', scale.toFixed(3));
   }
   function openFullscreen(card){
-    // 이전에 생성된 비디오가 있다면 제거
-    const oldVideo = lightWrap.querySelector('video.lightImg');
-    if (oldVideo) {
-      oldVideo.remove();
-    }
-    // 이미지 기본 숨김
+    // 이전에 생성된 비디오/이미지 정리
+    const oldMedia = lightWrap.querySelector('video.lightImg');
+    if (oldMedia) { oldMedia.remove(); }
     lightImg.style.display = 'none';
     lightImg.src = PLACEHOLDER;
 
-    const cardFileNameBase = expectedFilenameForCard(card).replace(/\.png$/, '');
-    const videoUrl = `./assets/vid/${cardFileNameBase}.webm`;
-
-    const video = document.createElement('video');
-    video.className = 'lightImg'; // 이미지와 동일한 클래스 사용
-    video.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
-    video.muted = true;
-    video.loop = true;
-    video.controls = false;
-    video.setAttribute('playsinline', '');
-
-    // 마우스 호버 시에만 재생/일시정지
-    video.addEventListener('mouseenter', function() {
-        this.play();
-    });
-    video.addEventListener('mouseleave', function() {
-        this.pause();
-    });
-
-    // 비디오 로드 실패 시, 기존 이미지 표시 로직으로 대체
-    video.onerror = function() {
-      this.remove(); // 실패한 비디오 요소 제거
-      const imageUrl = IMAGE_MAP[cardId(card)] || '';
-      lightImg.src = imageUrl;
-      lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
-      lightImg.style.display = 'block';
-    };
-    
-    video.src = videoUrl;
-    
-    // 비디오 요소를 이미지 요소 앞에 삽입
-    lightWrap.insertBefore(video, lightImg);
-    
+    const cardIdValue = cardId(card);
     const displayName = card.displayName || card.eng;
     lightCap.textContent = displayName + (card.reversed ? ' (역방향)' : '');
+
+    const imageUrl = IMAGE_MAP[cardIdValue] || '';
+    const isCustomImage = imageUrl.startsWith('blob:');
+
+    let mediaUrl;
+    let isVideo = false;
+
+    if (isCustomImage) {
+        // 이 카드가 사용자 정의 이미지일 경우: 사용자 정의 비디오를 찾고, 없으면 이 이미지로 대체합니다.
+        mediaUrl = VIDEO_MAP[cardIdValue];
+        if (mediaUrl) {
+            isVideo = true;
+        } else {
+            mediaUrl = imageUrl; // 비디오가 없으므로 이미지 URL을 사용합니다.
+            isVideo = false;
+        }
+    } else {
+        // 이 카드가 기본 이미지일 경우: 기본 비디오를 재생합니다.
+        const cardFileNameBase = expectedFilenameForCard(card).replace(/\.png$/, '');
+        mediaUrl = `./assets/vid/${cardFileNameBase}.webm`;
+        isVideo = true;
+    }
+
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.className = 'lightImg';
+        video.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+        video.muted = true;
+        video.loop = true;
+        video.controls = false;
+        video.setAttribute('playsinline', '');
+        video.src = mediaUrl;
+
+        video.addEventListener('mouseenter', () => video.play());
+        video.addEventListener('mouseleave', () => video.pause());
+
+        // 비디오 로드 실패 시, (기본 또는 사용자) 이미지로 대체
+        video.onerror = function() {
+            console.log(`비디오 로드 실패: ${mediaUrl}. 이미지로 대체합니다.`);
+            this.remove();
+            lightImg.src = imageUrl; // 항상 해당 카드의 이미지 URL을 사용
+            lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+            lightImg.style.display = 'block';
+        };
+        
+        lightWrap.insertBefore(video, lightImg);
+    } else {
+        // 비디오가 아닌 경우 (사용자 이미지만 있고 비디오는 없는 경우)
+        lightImg.src = mediaUrl;
+        lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+        lightImg.style.display = 'block';
+    }
 
     sizeLightbox();
     overlay.classList.remove('hide');
