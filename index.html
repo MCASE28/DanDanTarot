@@ -611,7 +611,16 @@
           rank: c.rank,
           eng: `${s.key} ${c.rank}`,
           displayName: minorCardNames[engKey] || `${s.alt} ${c.alt}`, // 맵에서 displayName 조회
-          searchKeywords: [ sanitize(engKey), sanitize(`${s.kor}${c.rank}`), sanitize(`${s.alt}${c.rank}`), sanitize(`${s.kor}${c.alt}`), sanitize(`${s.alt}${c.alt}`) ]
+          searchKeywords: [
+            sanitize(engKey),
+            sanitize(c.rank),
+            sanitize(c.kor),
+            sanitize(c.alt),
+            sanitize(`${s.kor}${c.kor}`),
+            sanitize(`${s.kor}${c.alt}`),
+            sanitize(`${s.alt}${c.kor}`),
+            sanitize(`${s.alt}${c.alt}`)
+          ]
         });
       }
     }
