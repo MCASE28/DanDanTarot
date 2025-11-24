@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>단단타로 - 전체 카드 보기</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+<style>
+  :root {
+    --bg:#0f1115;
+    --panel:#171a21;
+    --ink:#e7eaf0;
+    --muted:#a7b0bf;
+    --stroke:#2a2f3a;
+    --link:#9cc1ff;
+    --danger:#ff375f;
+    --frame:#e6edf5;
+    --btn-default-bg: #131722;
+    --btn-default-fg: #e5ecff;
+    --btn-default-border: var(--stroke);
+    --btn-default-font-weight: 900;
+    --btn-default-font-size: 16px;
+    --btn-default-height: 38px;
+    --btn-default-radius: 12px;
+    --btn-default-padding: 0 14px;
+  }
+  *{box-sizing:border-box}
+  html,body{
+    height:100%; margin:0; background:var(--bg); color:var(--ink);
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  }
+  .skewed{
+    min-width:108px;
+    letter-spacing:.02em;
+    transform:skewX(-16deg);
+    cursor:pointer;
+    border: none;
+    /* display: inline-block; Removed to allow for inline-flex on specific buttons */
+    text-decoration: none;
+  }
+  .skewed > span{ display: inline-block; transform: skewX(16deg); }
+
+  #fixed-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--panel);
+    padding: 10px;
+    z-index: 10004;
+    border-bottom: 1px solid var(--stroke);
+    display: flex; /* Re-added */
+    align-items: center; /* Re-added */
+    justify-content: space-between; /* Re-added */
+  }
+  #custom-btn-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .custom-btn {
+    height: var(--btn-default-height);
+    padding: var(--btn-default-padding);
+    border: 1px solid var(--btn-default-border);
+    border-radius: var(--btn-default-radius);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-fg);
+    font-weight: var(--btn-default-font-weight);
+    font-size: var(--btn-default-font-size);
+  }
+  .button-separator {
+    color: var(--muted);
+    padding: 0 5px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #allCardsView {
+    background-color: var(--bg);
+    padding: 20px;
+    padding-top: 80px; /* Adjusted for fixed header */
+    text-align: left;
+  }
+  #allCardsView h2 {
+    color: var(--ink);
+    margin-top: 20px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  #allCardsView .card-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    justify-content: flex-start;
+    padding-bottom: 80px;
+  }
+  #allCardsView .card-image {
+    width: 250px;
+    height: auto;
+    cursor: pointer;
+    border-radius: 5px;
+    border: 1px solid var(--stroke);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+  #allCardsView .card-image:hover {
+    transform: scale(1.1);
+    border-color: var(--link);
+  }
+  .close-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    height: var(--btn-default-height);
+    padding: var(--btn-default-padding);
+    border: 1px solid var(--btn-default-border);
+    border-radius: var(--btn-default-radius);
+    background: var(--btn-default-bg);
+    color: var(--btn-default-fg);
+    font-weight: var(--btn-default-font-weight);
+    font-size: var(--btn-default-font-size);
+    /* margin-left: auto; Removed */
+  }
+  #cardOverlay.veil{background:rgba(0,0,0,.78); z-index:10003}
+  .veil{position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:9999; background:rgba(0,0,0,.66); backdrop-filter: blur(14px)}
+  .veil.hide{display:none}
+  .lightWrap{
+    --fs-scale:1;
+    border:2px solid var(--frame); border-radius:18px;
+    background:linear-gradient(180deg,#0b0f16,#0a1018 60%,#0a0e14);
+    box-shadow:0 14px 60px rgba(0,0,0,.6); overflow:hidden;
+    display:flex; flex-direction:column; align-items:stretch;
+  }
+  .lightImg{width:100%; height:100%; object-fit:contain; background:#080c12}
+  .lightCap{
+    padding:calc(10px * var(--fs-scale)) calc(14px * var(--fs-scale));
+    border-top:1px solid rgba(230,237,245,.15);
+    text-align:center; color:#e9ecff; letter-spacing:.02em; font-weight:900;
+    font-size:clamp(14px, calc(16px * var(--fs-scale)), 28px);
+  }
+</style>
+</head>
+<body>
+  <header id="fixed-header">
+    <div id="custom-btn-container">
+      <!-- JS will add buttons here -->
+    </div>
+    <button id="closeBtn" class="skewed close-btn" type="button"><span>탭 닫기</span></button>
+  </header>
+  <div id="allCardsView">
+    <div id="card-container"></div>
+  </div>
+  <div id="cardOverlay" class="veil hide">
+    <div id="lightWrap" class="lightWrap" role="dialog" aria-modal="true" aria-label="Card preview">
+      <img id="lightImg" class="lightImg" alt="선택 카드">
+      <div id="lightCap" class="lightCap"></div>
+    </div>
+  </div>
+<script>
+  // --- Constants and Data ---
+  const FS_MAX_VW = 0.9;
+  const FS_MAX_VH = 0.9;
+  const FS_CAPTION_H = 80;
+  const FS_BASE_IMG_W = 80;
+  const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+  const MAJOR_NAME_MAP = {
+    0:'Fool', 1:'Magician', 2:'HighPriestess', 3:'Empress', 4:'Emperor',
+    5:'Hierophant', 6:'Lovers', 7:'Chariot', 8:'Strength', 9:'Hermit',
+    10:'WheelofFortune', 11:'Justice', 12:'HangedMan', 13:'Death',
+    14:'Temperance', 15:'Devil', 16:'Tower', 17:'Star', 18:'Moon',
+    19:'Sun', 20:'Judgement', 21:'World'
+  };
+
+  // --- DOM Refs ---
+  const overlay = document.getElementById('cardOverlay');
+  const lightWrap = document.getElementById('lightWrap');
+  const lightImg = document.getElementById('lightImg');
+  const lightCap = document.getElementById('lightCap');
+  const elCardContainer = document.getElementById('card-container');
+  const elCloseBtn = document.getElementById('closeBtn');
+
+  // --- Functions (copied from index.html) ---
+  const cardId = c => c?.id || c?.eng;
+  const expectedFilenameForCard = c => (
+    c.type==='major' ? `${MAJOR_NAME_MAP[c.num]}.png`
+      : (!c.court ? `${c.suit}${String(c.num).padStart(2,'0')}.png` : `${c.suit}${c.rank}.png`)
+  );
+
+  function getTarotDB() {
+    const major = [
+      { num:0,  eng:"The Fool",           kor:["바보", "광대"], displayName: "바보" },
+      { num:1,  eng:"The Magician",       kor:["마법사"],       displayName: "마법사" },
+      { num:2,  eng:"The High Priestess", kor:["여사제","고위여사제"], displayName: "여사제" },
+      { num:3,  eng:"The Empress",        kor:["여제","여황제"], displayName: "여황제" },
+      { num:4,  eng:"The Emperor",        kor:["황제"],         displayName: "황제" },
+      { num:5,  eng:"The Hierophant",     kor:["교황"],         displayName: "교황" },
+      { num:6,  eng:"The Lovers",         kor:["연인"],         displayName: "연인" },
+      { num:7,  eng:"The Chariot",        kor:["전차"],         displayName: "전차" },
+      { num:8,  eng:"Strength",           kor:["힘"],           displayName: "힘" },
+      { num:9,  eng:"The Hermit",         kor:["은둔자"],       displayName: "은둔자" },
+      { num:10, eng:"Wheel of Fortune",   kor:["운명의 수레바퀴", "운수"], displayName: "운명의 수레바퀴" },
+      { num:11, eng:"Justice",            kor:["정의"],         displayName: "정의" },
+      { num:12, eng:"The Hanged Man",     kor:["매달린 남자", "매달린놈"], displayName: "매달린 남자" },
+      { num:13, eng:"Death",              kor:["죽음"],         displayName: "죽음" },
+      { num:14, eng:"Temperance",         kor:["절제"],         displayName: "절제" },
+      { num:15, eng:"The Devil",          kor:["악마"],         displayName: "악마" },
+      { num:16, eng:"The Tower",          kor:["탑"],           displayName: "탑" },
+      { num:17, eng:"The Star",           kor:["별"],           displayName: "별" },
+      { num:18, eng:"The Moon",           kor:["달"],           displayName: "달" },
+      { num:19, eng:"The Sun",            kor:["태양"],         displayName: "태양" },
+      { num:20, eng:"Judgement",          kor:["심판"],         displayName: "심판" },
+      { num:21, eng:"The World",          kor:["세계"],         displayName: "세계" }
+    ];
+    const minorCardNames = { Wands1:"완드 에이스", Wands2:"완드 2", Wands3:"완드 3", Wands4:"완드 4", Wands5:"완드 5", Wands6:"완드 6", Wands7:"완드 7", Wands8:"완드 8", Wands9:"완드 9", Wands10:"완드 10", WandsPage:"완드 페이지", WandsKnight:"완드 나이트", WandsQueen:"완드 퀸", WandsKing:"완드 킹", Cups1:"컵 에이스", Cups2:"컵 2", Cups3:"컵 3", Cups4:"컵 4", Cups5:"컵 5", Cups6:"컵 6", Cups7:"컵 7", Cups8:"컵 8", Cups9:"컵 9", Cups10:"컵 10", CupsPage:"컵 페이지", CupsKnight:"컵 나이트", CupsQueen:"컵 퀸", CupsKing:"컵 킹", Swords1:"소드 에이스", Swords2:"소드 2", Swords3:"소드 3", Swords4:"소드 4", Swords5:"소드 5", Swords6:"소드 6", Swords7:"소드 7", Swords8:"소드 8", Swords9:"소드 9", Swords10:"소드 10", SwordsPage:"소드 페이지", SwordsKnight:"소드 나이트", SwordsQueen:"소드 퀸", SwordsKing:"소드 킹", Coins1:"코인 에이스", Coins2:"코인 2", Coins3:"코인 3", Coins4:"코인 4", Coins5:"코인 5", Coins6:"코인 6", Coins7:"코인 7", Coins8:"코인 8", Coins9:"코인 9", Coins10:"코인 10", CoinsPage:"코인 페이지", CoinsKnight:"코인 나이트", CoinsQueen:"코인 퀸", CoinsKing:"코인 킹" };
+    const suits = [ { key:"Wands", kor:"완드", alt:"지팡이" }, { key:"Swords", kor:"소드", alt:"검" }, { key:"Cups", kor:"컵", alt:"잔" }, { key:"Coins", kor:"코인", alt:"펜타클" } ];
+    const courts = [ { rank:"Page", kor:"페이지", alt:"시종" }, { rank:"Knight", kor:"나이트", alt:"기사" }, { rank:"Queen", kor:"퀸", alt:"여왕" }, { rank:"King", kor:"킹", alt:"왕" } ];
+    const cards = [];
+    const sanitize = str => (str ||'').toLowerCase().replace(/\s+/g,'');
+    major.forEach(m => { cards.push({ id: `M${m.num}`, type: "major", num: m.num, eng: m.eng, displayName: m.displayName, searchKeywords: [sanitize(m.eng), ...m.kor.map(sanitize)] }); });
+    for (const s of suits) { for (let n=1; n<=10; n++) { const engKey = `${s.key}${n}`; cards.push({ id: `m_${s.key.toLowerCase()}_${n}`, type: "minor", suit: s.key, num: n, court: false, eng: engKey, displayName: minorCardNames[engKey] || engKey, searchKeywords: [ sanitize(engKey), sanitize(`${s.kor}${n}`), sanitize(`${s.alt}${n}`) ] }); } }
+    for (const s of suits) { for (const c of courts) { const engKey = `${s.key}${c.rank}`; cards.push({ id: `m_${s.key.toLowerCase()}_${c.rank.toLowerCase()}`, type: "minor", suit: s.key, num: null, court: true, rank: c.rank, eng: `${s.key} ${c.rank}`, displayName: minorCardNames[engKey] || `${s.alt} ${c.alt}`, searchKeywords: [ sanitize(engKey), sanitize(c.rank), sanitize(c.kor), sanitize(c.alt), sanitize(`${s.kor}${c.kor}`), sanitize(`${s.kor}${c.alt}`), sanitize(`${s.alt}${c.kor}`), sanitize(`${s.alt}${c.alt}`) ] }); } }
+    return cards;
+  }
+
+  function sizeLightbox(){
+    const vw = Math.min(window.innerWidth,  document.documentElement.clientWidth  || window.innerWidth);
+    const vh = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight);
+    const maxW = vw * FS_MAX_VW, maxH = vh * FS_MAX_VH, aspect = 5/8;
+    let imgW = maxW, imgH = imgW / aspect;
+    if (imgH + FS_CAPTION_H > maxH) { imgH = maxH - FS_CAPTION_H; imgW = imgH * aspect; }
+    lightWrap.style.width  = `${Math.floor(imgW)}px`;
+    lightWrap.style.height = `${Math.floor(imgH + FS_CAPTION_H)}px`;
+    const mediaElement = lightWrap.querySelector('video.lightImg') || lightImg;
+    if (mediaElement) { mediaElement.style.height = `${Math.floor(imgH)}px`; }
+    const scale = Math.max(0.75, Math.min(1.8, imgW / FS_BASE_IMG_W));
+    lightWrap.style.setProperty('--fs-scale', scale.toFixed(3));
+  }
+
+  function openFullscreen(card){
+    const oldMedia = lightWrap.querySelector('video.lightImg');
+    if (oldMedia) { oldMedia.remove(); }
+    lightImg.style.display = 'none';
+    lightImg.src = PLACEHOLDER;
+    const cardIdValue = cardId(card);
+    const displayName = card.displayName || card.eng;
+    lightCap.textContent = displayName + (card.reversed ? ' (역방향)' : '');
+    const cardFileNameBase = expectedFilenameForCard(card).replace(/\.png$/, '');
+    const imageUrl = `./assets/img/${cardFileNameBase}.png`;
+    const mediaUrl = `./assets/vid/${cardFileNameBase}.webm`;
+    const isVideo = true;
+    if (isVideo) {
+        const video = document.createElement('video');
+        video.className = 'lightImg';
+        video.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.controls = false;
+        video.setAttribute('playsinline', '');
+        video.src = mediaUrl;
+        video.play().catch(e => console.warn("Autoplay was prevented:", e));
+        video.onerror = function() {
+            console.log(`비디오 로드 실패: ${mediaUrl}. 이미지로 대체합니다.`);
+            this.remove();
+            lightImg.src = imageUrl;
+            lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+            lightImg.style.display = 'block';
+        };
+        lightWrap.insertBefore(video, lightImg);
+    } else {
+        lightImg.src = imageUrl;
+        lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
+        lightImg.style.display = 'block';
+    }
+    sizeLightbox();
+    overlay.classList.remove('hide');
+  }
+
+  // --- Main Logic ---
+  document.addEventListener('DOMContentLoaded', () => {
+    // =========================================================
+    // ✅ 20개 버튼 텍스트 수정 영역
+    // =========================================================
+    const CUSTOM_BUTTON_TEXTS = [
+      "전체보기",
+      "한세긴", "송밤", "나비",
+      "다니얀","밤베", "밤새나", "요코링", "윰로로", "찌로","크앙희", "프하", "호발",
+      "공도리", "도라희","소호", "한세현",
+      "빕어", "청아", "대표님"
+    ];
+
+    // =========================================================
+    // ✅ 커스텀 카드 목록 수정 영역 (.png 확장자 제외)
+    // =========================================================
+    const CUSTOM_CARD_SETS = {
+      "btn2": ["Judgement","Magician","Swords09","Wands08"],                                       // 한세긴
+      "btn3": ["Coins10","Cups01","Empress","Sun","Swords03","Wands09"],                          // 송밤
+      "btn4": ["Hermit","Justice","Swords05","Wands07"],  // 나비
+      "btn5": ["Coins04","Cups08","Fool","HangedMan","Lovers","Wands04"],                                   // 다니얀
+      "btn6": ["Cups02","Hierophant","Tower"],                                   // 밤베
+      "btn7": ["Coins02","Devil","Swords04","Swords06"],                                   // 밤새나
+      "btn8": ["Coins06","Cups09","Star","Wands06"],                                   // 요코링
+      "btn9": ["Coins09","Cups10","Emperor","Swords08"],                                   // 윰로로
+      "btn10": ["HighPriestess","Swords10","Temperance","Wands01","Wands05"],                                  // 찌로
+      "btn11": ["Coins03","Cups06","Moon"],                                  // 크앙희
+      "btn12": ["Cups07","Death","Wands02","Wands03"],                                  // 프하
+      "btn13": ["Coins07","Swords07","World"],                  // 호발
+      "btn14": ["WandsPage","CoinsPage","CupsPage","SwordsPage"],                                  // 공도리
+      "btn15": ["Chariot","Coins08","Cups03","Wands10"],                                  // 도라희
+      "btn16": ["Coins01","Cups04","Cups05","Strength",],                                  // 소호
+      "btn17": ["Coins05","Swords02","WheelofFortune"],             // 한세현
+      "btn18": ["WandsQueen","CoinsQueen","CupsQueen","SwordsQueen"],                                  // 빕어
+      "btn19": ["WandsKnight","CoinsKnight","CupsKnight","SwordsKnight"],                                  // 청아
+      "btn20": ["WandsKing","CoinsKing","CupsKing","SwordsKing"],                                  // 대표님
+    };
+
+    const ALL_CARDS = getTarotDB();
+    const IMAGE_MAP = ALL_CARDS.reduce((map, card) => {
+        const filename = expectedFilenameForCard(card);
+        map[cardId(card)] = `./assets/img/${filename}`;
+        return map;
+    }, {});
+    
+    const cardByFilename = ALL_CARDS.reduce((map, card) => {
+        const filename = expectedFilenameForCard(card).replace('.png', '');
+        map[filename] = card;
+        return map;
+    }, {});
+
+    const sortedFullDeck = [...ALL_CARDS].sort((a, b) => {
+        if (a.type === 'major' && b.type !== 'major') return -1;
+        if (a.type !== 'major' && b.type === 'major') return 1;
+        if (a.type === 'major' && b.type === 'major') return a.num - b.num;
+        const suitOrder = ['Wands', 'Cups', 'Swords', 'Coins'];
+        const suitIndexA = suitOrder.indexOf(a.suit);
+        const suitIndexB = suitOrder.indexOf(b.suit);
+        if (suitIndexA !== suitIndexB) return suitIndexA - suitIndexB;
+        if(a.court && !b.court) return 1;
+        if(!a.court && b.court) return -1;
+        if(!a.court && !b.court) return a.num - b.num;
+        else {
+            const rankOrder = ['Page', 'Knight', 'Queen', 'King'];
+            return rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank);
+        }
+    });
+
+    // --- Card Rendering Function ---
+    function renderCards(cardsToRender, options = {}) {
+      const { title } = options;
+      elCardContainer.innerHTML = '';
+      let html = '';
+
+      if (title) {
+        // Custom set view
+        html += `<h2>${title}</h2><div class="card-grid">`;
+        cardsToRender.forEach(card => {
+          const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
+          html += `<img src="${url}" alt="${card.displayName}" class="card-image" data-card-id="${cardId(card)}" title="${card.displayName}">`;
+        });
+        html += '</div>';
+      } else {
+        // Full deck view (default)
+        let majorHTML = '<h2>메이저 아르카나</h2><div class="card-grid">';
+        const suitHTML = { Wands: '<h2>완드 (Wands)</h2><div class="card-grid">', Cups: '<h2>컵 (Cups)</h2><div class="card-grid">', Swords: '<h2>소드 (Swords)</h2><div class="card-grid">', Coins: '<h2>코인 (Coins)</h2><div class="card-grid">' };
+
+        cardsToRender.forEach(card => {
+            const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
+            const imgHTML = `<img src="${url}" alt="${card.displayName}" class="card-image" data-card-id="${cardId(card)}" title="${card.displayName}">`;
+            if (card.type === 'major') majorHTML += imgHTML;
+            else if (card.suit && suitHTML[card.suit]) suitHTML[card.suit] += imgHTML;
+        });
+
+        majorHTML += '</div>';
+        for(const suit in suitHTML) { suitHTML[suit] += '</div>'; }
+        html = majorHTML + suitHTML.Wands + suitHTML.Cups + suitHTML.Swords + suitHTML.Coins;
+      }
+      
+      elCardContainer.innerHTML = html;
+
+      // Re-attach listeners to new images
+      elCardContainer.querySelectorAll('.card-image').forEach(img => {
+          img.addEventListener('click', () => {
+              const cId = img.dataset.cardId;
+              const card = ALL_CARDS.find(c => cardId(c) === cId);
+              if (card) openFullscreen({...card, reversed: false});
+          });
+      });
+    }
+
+    // --- Button Generation and Event Listeners ---
+    const btnContainer = document.getElementById('custom-btn-container');
+    if (btnContainer) {
+      CUSTOM_BUTTON_TEXTS.forEach((text, i) => {
+        const btn = document.createElement('button');
+        const btnId = `btn${i + 1}`;
+        btn.id = btnId;
+        btn.className = 'skewed custom-btn';
+        btn.type = 'button';
+        
+        const span = document.createElement('span');
+        span.textContent = text;
+        
+        btn.appendChild(span);
+
+        if (btnId === 'btn1') {
+          // btn1 is now the "전체보기" button
+          btn.addEventListener('click', () => renderCards(sortedFullDeck));
+        } else {
+          btn.addEventListener('click', () => {
+            const cardFilenames = CUSTOM_CARD_SETS[btnId] || [];
+            const cardsToShow = cardFilenames.map(filename => cardByFilename[filename]).filter(Boolean); // Look up cards and filter out any not found
+            renderCards(cardsToShow, { title: text });
+          });
+        }
+        
+        btnContainer.appendChild(btn);
+
+        if (['btn1', 'btn4', 'btn13', 'btn17'].includes(btnId)) {
+          const separator = document.createElement('span');
+          separator.textContent = '|';
+          separator.className = 'button-separator';
+          btnContainer.appendChild(separator);
+        }
+      });
+    }
+
+    // --- Initial Setup ---
+    renderCards(sortedFullDeck); // Initial render is the full deck
+    elCloseBtn.addEventListener('click', () => { window.close(); });
+    overlay.addEventListener('click', ()=> overlay.classList.add('hide'));
+    lightWrap.addEventListener('click', (event) => { event.stopPropagation(); });
+    window.addEventListener('resize', ()=> { if(!overlay.classList.contains('hide')) sizeLightbox(); });
+  });
+</script>
+</body>
+</html>

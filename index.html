@@ -95,6 +95,16 @@
     --btn-memo-radius: var(--btn-default-radius);
     --btn-memo-padding: 0 10px; /* 기본값과 다르게 설정 */
 
+    /* -- #viewAllCardsBtn (카드만보기) -- */
+    --btn-view-all-cards-bg: var(--btn-default-bg);
+    --btn-view-all-cards-fg: var(--btn-default-fg);
+    --btn-view-all-cards-border: var(--btn-default-border);
+    --btn-view-all-cards-font-weight: var(--btn-default-font-weight);
+    --btn-view-all-cards-font-size: var(--btn-default-font-size);
+    --btn-view-all-cards-height: var(--btn-default-height);
+    --btn-view-all-cards-radius: var(--btn-default-radius);
+    --btn-view-all-cards-padding: var(--btn-default-padding);
+
     /* -- .remove (카드 제거) -- */
     --btn-danger-bg: var(--danger);
     --btn-danger-fg: #fff;
@@ -204,7 +214,20 @@
     font-weight: var(--btn-memo-font-weight);
     font-size: var(--btn-memo-font-size);
   }
-
+  #viewAllCardsBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    height: var(--btn-view-all-cards-height);
+    padding: var(--btn-view-all-cards-padding);
+    border: 1px solid var(--btn-view-all-cards-border);
+    border-radius: var(--btn-view-all-cards-radius);
+    background: var(--btn-view-all-cards-bg);
+    color: var(--btn-view-all-cards-fg);
+    font-weight: var(--btn-view-all-cards-font-weight);
+    font-size: var(--btn-view-all-cards-font-size);
+  }
   .search-wrap{position:relative; width:260px; flex:0 0 260px}
   .search-input{width:100%; padding:10px 12px; border-radius:12px; border:1px solid var(--stroke);
     background:#0c0f14; color:#fff; font-size:15px; outline:none;}
@@ -321,62 +344,6 @@
     text-align:center; color:#e9ecff; letter-spacing:.02em; font-weight:900;
     font-size:clamp(14px, calc(16px * var(--fs-scale)), 28px);
   }
-
-  /* 카드만 보기 뷰 */
-  #allCardsView {
-    display: none; /* Initially hidden */
-    background-color: var(--bg);
-    padding: 20px;
-    text-align: left;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    overflow-y: scroll;
-    z-index: 10001; /* Above lightbox */
-  }
-  #allCardsView h2 {
-    color: var(--ink);
-    margin-top: 20px;
-    margin-bottom: 10px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--stroke);
-  }
-  #allCardsView .card-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px; /* Changed from 10px to match .board gap */
-    justify-content: flex-start;
-    padding-bottom: 80px; /* For close button */
-  }
-  #allCardsView .card-image {
-    width: 250px; /* Changed from 100px */
-    height: auto;
-    cursor: pointer;
-    border-radius: 5px;
-    border: 1px solid var(--stroke);
-    transition: transform 0.2s ease, border-color 0.2s ease;
-  }
-  #allCardsView .card-image:hover {
-    transform: scale(1.1);
-    border-color: var(--link);
-  }
-  #allCardsView .close-btn {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10002;
-    /* Reusing skewed button style */
-    height: var(--btn-default-height);
-    padding: var(--btn-default-padding);
-    border: 1px solid var(--btn-default-border);
-    border-radius: var(--btn-default-radius);
-    background: var(--btn-default-bg);
-    color: var(--btn-default-fg);
-    font-weight: var(--btn-default-font-weight);
-    font-size: var(--btn-default-font-size);
-  }
 </style>
 </head>
 
@@ -431,7 +398,7 @@
     <div class="modal">
       <!-- 소개글 / Log 토글 -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin:-12px 0 8px;">
-        <button id="viewAllCardsBtn" class="skewed" type="button"><span>카드만보기</span></button>
+        <a href="./all_cards.html" id="viewAllCardsBtn" class="skewed" target="_blank"><span>카드만보기</span></a>
         <label class="flip" style="width:260px; height:44px;">
           <input id="readFlip" type="checkbox" />
           <div class="track"><div class="seg">소개글</div><div class="seg">Log</div></div>
@@ -1285,107 +1252,6 @@
         event.preventDefault();
     }
   });
-
-  /* ===== 카드만 보기 로직 ===== */
-  const elViewAllCardsBtn = document.getElementById('viewAllCardsBtn');
-  const elAllCardsView = document.createElement('div');
-  elAllCardsView.id = 'allCardsView';
-  document.body.appendChild(elAllCardsView);
-
-  // Function to show all cards
-  function showAllCardsView() {
-      // Ensure image map is ready
-      if (Object.keys(IMAGE_MAP).length === 0) {
-          IMAGE_MAP = getDefaultImageMap();
-      }
-
-      // Sort cards: Major, then Minor by suit and number/rank
-      const sortedCards = [...ALL_CARDS].sort((a, b) => {
-          if (a.type === 'major' && b.type !== 'major') return -1;
-          if (a.type !== 'major' && b.type === 'major') return 1;
-          if (a.type === 'major' && b.type === 'major') {
-              return a.num - b.num;
-          }
-
-          // Both are minor
-          const suitOrder = ['Wands', 'Cups', 'Swords', 'Coins'];
-          const suitIndexA = suitOrder.indexOf(a.suit);
-          const suitIndexB = suitOrder.indexOf(b.suit);
-          if (suitIndexA !== suitIndexB) {
-              return suitIndexA - suitIndexB;
-          }
-
-          // Same suit
-          if(a.court && !b.court) return 1;
-          if(!a.court && b.court) return -1;
-
-          if(!a.court && !b.court) { // both are numbered
-              return a.num - b.num;
-          } else { // both are court
-              const rankOrder = ['Page', 'Knight', 'Queen', 'King'];
-              return rankOrder.indexOf(a.rank) - rankOrder.indexOf(b.rank);
-          }
-      });
-
-      let majorHTML = '<h2>메이저 아르카나</h2><div class="card-grid">';
-      const suitHTML = {
-          Wands: '<h2>완드 (Wands)</h2><div class="card-grid">',
-          Cups: '<h2>컵 (Cups)</h2><div class="card-grid">',
-          Swords: '<h2>소드 (Swords)</h2><div class="card-grid">',
-          Coins: '<h2>코인 (Coins)</h2><div class="card-grid">'
-      };
-
-      sortedCards.forEach(card => {
-          const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
-          const imgHTML = `<img src="${url}" alt="${card.displayName}" class="card-image" data-card-id="${cardId(card)}" title="${card.displayName}">`;
-
-          if (card.type === 'major') {
-              majorHTML += imgHTML;
-          } else if (card.suit && suitHTML[card.suit]) {
-              suitHTML[card.suit] += imgHTML;
-          }
-      });
-
-      majorHTML += '</div>';
-      for(const suit in suitHTML){
-          suitHTML[suit] += '</div>';
-      }
-
-      elAllCardsView.innerHTML = `
-          <button id="closeAllCardsViewBtn" class="skewed close-btn" type="button"><span>닫기</span></button>
-          ${majorHTML}
-          ${suitHTML.Wands}
-          ${suitHTML.Cups}
-          ${suitHTML.Swords}
-          ${suitHTML.Coins}
-      `;
-
-      // Add event listeners
-      document.getElementById('closeAllCardsViewBtn').addEventListener('click', () => {
-          elAllCardsView.style.display = 'none';
-          document.getElementById('veil').classList.remove('hide'); // Show title screen again
-      });
-
-      elAllCardsView.querySelectorAll('.card-image').forEach(img => {
-          img.addEventListener('click', () => {
-              const cId = img.dataset.cardId;
-              const card = ALL_CARDS.find(c => cardId(c) === cId);
-              if (card) {
-                  // The card object for fullscreen needs to know if it was reversed
-                  // In this view, cards are never reversed.
-                  const cardState = {...card, reversed: false};
-                  openFullscreen(cardState);
-              }
-          });
-      });
-
-      // Hide title and show the card view
-      document.getElementById('veil').classList.add('hide');
-      elAllCardsView.style.display = 'block';
-  }
-
-  // Attach event listener to the new button
-  elViewAllCardsBtn.addEventListener('click', showAllCardsView);
 </script>
 </body>
 </html>
