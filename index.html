@@ -40,6 +40,7 @@
     --queue-title-font-size: calc(var(--queue-font-base) + 5px);       /* 12+3 = 15px */
     --queue-status-font-size: calc(var(--queue-font-base) + 3px);      /* 12+1 = 13px */
     --queue-table-header-font-size: var(--queue-font-base);            /* 12px */
+    --queue-val-font-size: calc(var(--queue-font-base) + 3px);          /* 18px */
 
     /* [환경설정] 크기 조절 단위 (한 단계당 늘어나는 양) */
     --step-width: 30px;        /* 가로 증가량 */
@@ -452,7 +453,7 @@
   .queue-val {
     font-weight: 700;
     color: var(--link);
-    font-size: 14px;
+    font-size: var(--queue-val-font-size);
   }
   .queue-body {
     flex: 1;
@@ -690,7 +691,7 @@
 
     <!-- 2줄: 상태 -->
     <div class="queue-status">
-      <span>현재 대기열:</span>
+      <span>현재 대기열 :</span>
       <span id="queueCurrentCount" class="queue-val"></span>
       <span id="queueSpinner" class="mini-spin"></span>
     </div>
@@ -1771,6 +1772,7 @@
       root.style.setProperty('--queue-title-font-size', (currF + 5) + 'px');
       root.style.setProperty('--queue-status-font-size', (currF + 3) + 'px');
       root.style.setProperty('--queue-table-header-font-size', currF + 'px');
+      root.style.setProperty('--queue-val-font-size', (currF + 3) + 'px');
       
       // 텍스트 표시 업데이트
       txtVal.textContent = formatStep(s);
