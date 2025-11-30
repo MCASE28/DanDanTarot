@@ -30,6 +30,22 @@
     --memo-width: 420px; /* 메모장 너비 */
     --memo-min-height: 720px; /* 메모장 최소 높이 */
 
+    /* --- 대기열 (Queue) 레이아웃 설정 --- */
+    --queue-width: 280px;      /* 대기열 박스 너비 (기본값) */
+    --queue-height: 300px;     /* 대기열 박스 높이 (기본값) */
+    --queue-bg: rgba(23, 26, 33, 0.1); /* 배경색 (반투명) */
+    --queue-z-index: 9000;     /* 레이어 순서 (상단) */
+    
+    --queue-font-base: 15px;   /* 기준 폰트 크기 (기본값) */
+    --queue-title-font-size: calc(var(--queue-font-base) + 5px);       /* 12+3 = 15px */
+    --queue-status-font-size: calc(var(--queue-font-base) + 3px);      /* 12+1 = 13px */
+    --queue-table-header-font-size: var(--queue-font-base);            /* 12px */
+
+    /* [환경설정] 크기 조절 단위 (한 단계당 늘어나는 양) */
+    --step-width: 30px;        /* 가로 증가량 */
+    --step-height: 40px;       /* 세로 증가량 */
+    --step-font-size: 2px;     /* 폰트 증가량 */
+
     /* --- 1. 기본 버튼 스타일 (Default) --- */
     /* 모든 버튼에 공통으로 적용되는 기본값입니다. */
     --btn-default-bg: #131722;
@@ -109,13 +125,11 @@
     --btn-danger-bg: var(--danger);
     --btn-danger-fg: #fff;
     --btn-danger-font-weight: 900;
-    --btn-danger-size: 28px;
+    --btn-danger-size: 24px; /* 사이즈 조절 */
 
     /* ========================================================= */
-
-    /* 메모 열 너비: 펼침=var(--memo-width) / 접힘=0px (JS 토글) */
-    --MEMO_COL: 0px;
-  }
+    /* ... */
+  } /* :root 닫기 */
 
   *{box-sizing:border-box}
   html,body{
@@ -152,11 +166,11 @@
   .skewed{
     min-width:108px;
     letter-spacing:.02em;
-    transform:skewX(-16deg);
+    /* transform:skewX(-16deg); */ /* 마름모 형태 제거 */
     cursor:pointer;
     border: none; /* 테두리는 각 버튼에서 정의 */
   }
-  .skewed > span{ display: inline-block; transform: skewX(16deg); }
+  .skewed > span{ display: inline-block; /* transform: skewX(16deg); */ }
 
   /* 각 버튼별 개별 스타일 적용 */
   #resetBtn, #decideBtn, #pickBtn, #nextBtn, #memoToggle {
@@ -259,18 +273,30 @@
   .card.rev{transform:rotate(180deg)}
   .cap-row{width:250px; display:flex; align-items:center; justify-content:space-between; gap:8px}
   .cap{flex:1 1 auto; text-align:center; font-weight:700; font-size:18px; color:#cdd5e3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
   .remove{
     flex:0 0 auto;
     width:var(--btn-danger-size);
     height:var(--btn-danger-size);
-    border-radius:999px;
-    border:1px solid rgba(255,255,255,.18);
-    background:var(--btn-danger-bg);
-    color:var(--btn-danger-fg);
-    font-weight:var(--btn-danger-font-weight);
-    display:grid;
-    place-items:center;
+    border-radius:4px; /* 둥근 사각형 */
+    border:none;
+    background:transparent; /* 배경 투명 */
+    color:var(--danger); /* 아이콘 색상 */
+    display:flex;
+    align-items:center;
+    justify-content:center;
     cursor:pointer;
+    transition: background .2s, color .2s;
+  }
+  .remove:hover {
+    background: rgba(255, 55, 95, 0.15); /* 호버 시 붉은색 틴트 */
+  }
+  .remove svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    stroke: currentColor;
+    stroke-width: 2;
   }
 
   /* ===== 메모장 ===== */
@@ -344,6 +370,258 @@
     text-align:center; color:#e9ecff; letter-spacing:.02em; font-weight:900;
     font-size:clamp(14px, calc(16px * var(--fs-scale)), 28px);
   }
+
+  /* ===== 대기열 (Queue) UI ===== */
+  .queue-box {
+    position: fixed;
+    /* 기본 위치 (JS에서 클래스로 제어하므로 초기값은 무시되거나 pos-bl로 덮어씌워짐) */
+    left: 16px; 
+    bottom: 16px;
+    width: var(--queue-width);
+    height: var(--queue-height);
+    background: var(--queue-bg);
+    border: 1px solid var(--stroke);
+    border-radius: 14px;
+    z-index: var(--queue-z-index);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    /* overflow: hidden; -> 팝업 노출을 위해 제거 */
+    backdrop-filter: blur(6px);
+    transition: top .3s, bottom .3s, left .3s, right .3s; /* 부드러운 이동 */
+  }
+
+  /* 위치 클래스 */
+  .queue-box.pos-bl { left: 16px; bottom: 16px; top: auto; right: auto; }
+  .queue-box.pos-tl { left: 16px; top: 16px; bottom: auto; right: auto; }
+  /* 오른쪽 위: 메모장 너비(--MEMO_COL) + 기본 여백(16px) 만큼 떨어짐 */
+  .queue-box.pos-tr { right: calc(var(--MEMO_COL) + 16px); top: 16px; bottom: auto; left: auto; }
+  .queue-box.pos-br { right: 16px; bottom: 16px; top: auto; left: auto; }
+
+  .queue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--stroke);
+    border-radius: 14px 14px 0 0; /* 상단 모서리 둥글게 복구 */
+  }
+  .queue-title {
+    flex-grow: 1;
+    text-align: center;
+    font-weight: 800;
+    font-size: var(--queue-title-font-size);
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+  .queue-tools {
+    display: flex;
+    gap: 6px;
+  }
+  .icon-btn {
+    background: transparent;
+    border: none;
+    color: #fff;
+    padding: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, background 0.2s;
+  }
+  .icon-btn:hover {
+    background: rgba(255,255,255,0.1);
+  }
+  .icon-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+  .queue-status {
+    padding: 10px 14px;
+    font-size: var(--queue-status-font-size);
+    color: #fff; /* 흰색으로 변경 */
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    align-items: center;
+  }
+  .queue-val {
+    font-weight: 700;
+    color: var(--link);
+    font-size: 14px;
+  }
+  .queue-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+  
+  .queue-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--queue-font-base); /* 기준 폰트 적용 */
+    text-align: center;
+  }
+  .queue-table th {
+    position: sticky;
+    top: 0;
+    background: var(--queue-bg); /* queue-bg 값 적용 */
+    color: #fff; /* 흰색으로 변경 */
+    padding: 8px 4px;
+    font-weight: 600;
+    font-size: var(--queue-table-header-font-size);
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .queue-table td {
+    padding: 6px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    color: #fff; /* 흰색으로 변경 */
+  }
+  .queue-table tr:last-child td {
+    border-bottom: none;
+  }
+  
+  /* 설정 팝업 스타일 */
+  .queue-settings {
+    position: absolute;
+    /* 기본값 (Bottom-Left 기준): 박스 위쪽, 왼쪽 정렬 */
+    bottom: 100%;      
+    top: auto;         
+    left: 0;           
+    right: auto;
+    margin-bottom: 10px; 
+    margin-top: 0;
+    margin-left: 0;    
+    width: 220px;
+    background: #1b1f29;
+    border: 1px solid var(--stroke);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    display: none; 
+    flex-direction: column;
+    gap: 10px;
+    z-index: 9001;
+  }
+  .queue-settings.show { display: flex; }
+  
+  /* 말풍선 꼬리 기본 (아래쪽을 향함) */
+  .queue-settings::before {
+    content: "";
+    position: absolute;
+    top: 100%;         
+    bottom: auto;
+    left: 20px;
+    right: auto;
+    width: 10px;
+    height: 10px;
+    background: #1b1f29;
+    border: 1px solid var(--stroke);
+    border-top: none; border-left: none; /* 우하단 테두리 */
+    transform: rotate(45deg);
+    margin-top: -6px; 
+    margin-bottom: 0;
+  }
+
+  /* 위치별 팝업 조정 */
+  /* Top에 붙으면 팝업은 아래로 */
+  .queue-box.pos-tl .queue-settings,
+  .queue-box.pos-tr .queue-settings {
+    bottom: auto;
+    top: 100%;
+    margin-bottom: 0;
+    margin-top: 10px;
+  }
+  /* Top일 때 꼬리는 위쪽을 향함 */
+  .queue-box.pos-tl .queue-settings::before,
+  .queue-box.pos-tr .queue-settings::before {
+    top: auto;
+    bottom: 100%;
+    border: 1px solid var(--stroke);
+    border-bottom: none; border-right: none; /* 좌상단 테두리 */
+    margin-top: 0;
+    margin-bottom: -6px;
+  }
+
+  /* Right에 붙으면 팝업은 오른쪽 정렬 */
+  .queue-box.pos-tr .queue-settings,
+  .queue-box.pos-br .queue-settings {
+    left: auto;
+    right: 0;
+  }
+  /* Right일 때 꼬리는 오른쪽으로 이동 */
+  .queue-box.pos-tr .queue-settings::before,
+  .queue-box.pos-br .queue-settings::before {
+    left: auto;
+    right: 20px;
+  }
+
+
+  .qs-row { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    font-size: 13px; 
+    color: #fff; /* 흰색으로 변경 */
+    padding-bottom: 8px; /* 구분선 위아래 패딩 */
+    margin-bottom: 8px; /* 구분선 위아래 마진 */
+    border-bottom: 1px solid rgba(255,255,255,0.08); /* 구분선 */
+  }
+  .qs-row:last-child {
+    border-bottom: none; /* 마지막 줄 구분선 제거 */
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  .qs-label { 
+    font-weight: 600; 
+    flex: 0 0 50px; 
+    text-align: center; /* 라벨 중앙 정렬 */
+  }
+  
+  /* 컨트롤 박스 (공통) */
+  .qs-font-ctrl { 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; /* 컨트롤 중앙 정렬 */
+    gap: 8px; 
+    background: #0c0f14; 
+    padding: 2px; 
+    border-radius: 6px; 
+    border: 1px solid var(--stroke); 
+  }
+  .qs-btn { width: 24px; height: 24px; background: transparent; border: none; color: #fff; cursor: pointer; font-weight: bold; display: grid; place-items: center; }
+  .qs-btn:hover { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .qs-val { font-variant-numeric: tabular-nums; width: 40px; text-align: center; font-size: 13px; }
+
+  /* 마감 배지 스타일 */
+  .badge-closed {
+    display: inline-block;
+    padding: 4px 8px;
+    background: var(--danger); /* 붉은색 */
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  /* 일반 상태 배지 스타일 (현재: [값] [값]) */
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.15); /* 반투명 회색 */
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 700;
+    line-height: 1;
+    margin: 0 2px;
+  }
+
 </style>
 </head>
 
@@ -385,13 +663,66 @@
     <aside class="memo collapsed" id="memo">
       <div class="memo-header" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
         <h3 style="margin:0">메모장</h3>
-        <button id="memoToggle" class="skewed small" type="button" aria-pressed="true">메모장 켜기</button>
+        <button id="memoToggle" class="skewed small" type="button" aria-pressed="true">메모장 열기</button>
       </div>
       <div class="memo-body">
         <textarea placeholder="자유롭게 메모하세요. (서버 저장 없음)"></textarea>
       </div>
     </aside>
   </div>
+
+  <!-- ===== 대기열 UI (Left Bottom Fixed) ===== -->
+  <aside id="queueBox" class="queue-box">
+    <!-- 1줄: 타이틀 + 도구버튼 -->
+    <div class="queue-header">
+      <span class="queue-title">타로데이 대기열</span>
+      <div class="queue-tools">
+        <!-- 위치 이동 버튼 -->
+        <button type="button" class="icon-btn" title="위치 이동" id="queuePosBtn">
+          <svg viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h10v4h8v10z"/></svg>
+        </button>
+        <!-- 설정 아이콘 (Settings) -->
+        <button type="button" class="icon-btn" title="설정" id="queueSettingBtn">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- 2줄: 상태 -->
+    <div class="queue-status">
+      <span>현재 대기열:</span>
+      <span id="queueCurrentCount" class="queue-val"></span>
+      <span id="queueSpinner" class="mini-spin"></span>
+    </div>
+
+    <!-- 3줄: 테이블 헤더 + 바디 -->
+    <div class="queue-body">
+      <table class="queue-table">
+        <thead>
+          <tr>
+            <th width="20%">순번</th>
+            <th>닉네임</th>
+            <th width="30%">타로종류</th>
+          </tr>
+        </thead>
+        <tbody id="queueTableBody">
+          <!-- 데이터 들어올 자리 (비워둠) -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 설정 팝업 -->
+    <div id="queueSettings" class="queue-settings">
+      <div class="qs-row" style="border-bottom: none;">
+        <span class="qs-label">크기</span>
+        <div class="qs-font-ctrl">
+          <button type="button" class="qs-btn" id="qsScaleMinus">-</button>
+          <span id="qsScaleVal" class="qs-val">기본</span>
+          <button type="button" class="qs-btn" id="qsScalePlus">+</button>
+        </div>
+      </div>
+    </div>
+  </aside>
 
   <!-- ===== 타이틀(소개/Log/폴더 검사 UI) ===== -->
   <div id="veil" class="veil">
@@ -715,11 +1046,15 @@
   const elReadThumb= document.getElementById('readThumb');
   const elIntro = document.getElementById('introContent');
   const elLog   = document.getElementById('logContent');
+  
+  // New DOM ref for queueCurrentCount
+  const elQueueCurrentCount = document.getElementById('queueCurrentCount');
 
   // 상태 패널 refs
   const elStatusBox = document.getElementById('statusBox');
   const elStatusVal = document.getElementById('statusVal');
   const elStatusSpin= document.getElementById('statusSpinner');
+  const elQueueSpin = document.getElementById('queueSpinner'); // 추가
 
   // 라이트박스
   const overlay   = document.getElementById('cardOverlay');
@@ -728,11 +1063,99 @@
   const lightCap  = document.getElementById('lightCap');
 
   /* ====== "현재:" 패널 (GAS API 연동) ====== */
-  function statusLoading(on){ elStatusSpin.classList.toggle('on', !!on); }
+  function statusLoading(on){ 
+    elStatusSpin.classList.toggle('on', !!on); 
+    if(elQueueSpin) elQueueSpin.classList.toggle('on', !!on); // 대기열 스피너 토글
+  }
   
-  function statusShowValues(c6, d6){
-    const sep = (c6 && d6) ? ' / ' : '';
-    elStatusVal.textContent = `${c6}${sep}${d6}`;
+  function statusShowValues(c6, d6, queueCount, isAnyClosed){ // isAnyClosed 파라미터 추가
+    const safeC6 = String(c6 || '').trim();
+    const safeD6 = String(d6 || '').trim();
+    const rawText = safeC6 + safeD6;
+    
+    // 특수문자/공백 제거하고 한글/영문/숫자만 남김
+    // 그리고 그 결과가 정확히 '마감'인지 확인 (현재 진행 중인 건)
+    const cleaned = rawText.replace(/[^가-힣a-zA-Z0-9]/g, '');
+    const isCurrentClosed = (cleaned === '마감');
+    
+    // 대기열 전체 마감 여부 (현재 건이 마감이거나, 리스트 중 마감이 있는 경우)
+    const isQueueClosed = isCurrentClosed || isAnyClosed;
+    
+    const count = (typeof queueCount === 'number') ? queueCount : 0;
+    
+    // elStatusVal (현재:) 처리 - c6, d6 배지 형태로 항상 표시 (이전 상태 복원)
+    // 단, 현재 건 자체가 마감이면 [마감] 표시
+    let statusValHtml = '';
+    if (isCurrentClosed) { 
+      statusValHtml = '<span class="badge-closed">마감</span>';
+    } else {
+      if (safeC6) statusValHtml += `<span class="status-badge">${safeC6}</span>`;
+      if (safeD6) statusValHtml += `<span class="status-badge">${safeD6}</span>`;
+      if (!statusValHtml) statusValHtml = '<span class="status-badge" style="opacity:0.5; min-width: 1.5em;">&nbsp;</span>'; 
+    }
+    elStatusVal.innerHTML = statusValHtml;
+
+
+    // elQueueCurrentCount (현재 대기열:) 처리 - 마감 로직 + 인원수 로직
+    let queueCountHtml = '';
+    if (isQueueClosed) { // 전체 중 하나라도 마감이면 마감 로직 적용
+      if (count >= 2) {
+        // 마감이고 2명 이상이면 인원수 + 마감 배지
+        queueCountHtml = `<span class="status-badge">${count} 명</span> <span class="badge-closed">마감</span>`;
+      } else {
+        // 마감이고 1명 이하이면 마감 배지만
+        queueCountHtml = '<span class="badge-closed">마감</span>';
+      }
+    } else {
+      // 마감이 아니면 'n 명' 형태로 표시
+      queueCountHtml = `<span class="status-badge">${count} 명</span>`;
+    }
+    
+    if (elQueueCurrentCount) {
+       elQueueCurrentCount.innerHTML = queueCountHtml;
+    }
+  }
+
+  // 대기열 테이블 렌더링 함수
+  function renderQueueTable(queueData, totalCount) {
+    const tbody = document.getElementById('queueTableBody');
+    if (!tbody) return;
+    
+    let html = queueData.map((item, index) => {
+      const rank = index + 1;
+      // 안전하게 문자열로 변환
+      const nick = String(item.nick || '');
+      const type = String(item.type || ''); 
+
+      // '마감' 여부 확인 (문자열로 변환된 값 사용)
+      // 닉네임과 타로종류를 합쳐서 특수문자 제거 후 정확히 '마감'만 남는지 확인
+      // 예: '마/감' -> '마감' (O), '마감감마' -> '마감감마' (X)
+      const combinedText = (nick + type).replace(/[^가-힣a-zA-Z0-9]/g, '');
+      const isClosed = (combinedText === '마감');
+
+      if (isClosed) {
+        return `
+          <tr>
+            <td>${rank}</td>
+            <td colspan="2" style="text-align: center; vertical-align: middle;">
+              <span class="badge-closed">마감</span>
+            </td>
+          </tr>
+        `;
+      } else {
+        return `
+          <tr>
+            <td>${rank}</td>
+            <td>${nick || '-'}</td>
+            <td>${type}</td>
+          </tr>
+        `;
+      }
+    }).join('');
+
+
+
+    tbody.innerHTML = html;
   }
   
   function refreshStatus(){
@@ -756,7 +1179,22 @@
         
         // 5. 가져온 데이터를 처리합니다.
         if (data.success) {
-            statusShowValues(data.c6, data.d6);
+            // 전체 대기열 중 하나라도 '마감'이 있는지 확인
+            let isAnyClosed = false;
+            if (data.queue && Array.isArray(data.queue)) {
+                isAnyClosed = data.queue.some(item => {
+                    const combined = (item.nick || '') + (item.type || '');
+                    const cleaned = combined.replace(/[^가-힣a-zA-Z0-9]/g, '');
+                    return cleaned === '마감';
+                });
+            }
+
+            statusShowValues(data.c6, data.d6, data.queueCount, isAnyClosed); // isAnyClosed 추가 전달
+            
+            // 대기열 테이블 렌더링 (API가 queue 배열을 반환한다고 가정)
+            if (data.queue && Array.isArray(data.queue)) {
+                renderQueueTable(data.queue, data.queueCount); // totalCount 추가 전달
+            }
         } else {
             console.error('Error from GAS API:', data.error);
             statusShowValues("API 오류", "");
@@ -1000,7 +1438,9 @@
                 aria-label="${displayName}"></div>
             <div class="cap-row">
               <div class="cap" title="${displayName}">${displayName}</div>
-              <button class="remove" title="카드 제거">–</button>
+              <button class="remove" title="카드 제거">
+                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+              </button>
             </div>
           </div>
         </div>`;
@@ -1230,7 +1670,7 @@
   elMemoToggle.addEventListener('click', ()=>{
     const willHide = !elMemo.classList.contains('collapsed');
     elMemo.classList.toggle('collapsed', willHide);
-    elMemoToggle.textContent = willHide ? 'Show' : 'Hide';
+    elMemoToggle.textContent = willHide ? '메모장 열기' : '메모장 닫기';
     elMemoToggle.setAttribute('aria-pressed', willHide ? 'true' : 'false');
     syncMemoLayout();
   });
@@ -1252,6 +1692,143 @@
         event.preventDefault();
     }
   });
+
+  /* =========================================================
+     ✅ 대기열 설정 (Queue Settings) 로직 - 통합 크기 조절 (Scale) & 위치 이동
+     ========================================================= */
+  (function initQueueSettings(){
+    const STORAGE_KEY = 'dandan_queue_config_v6_pos'; // 키 변경 (초기화 v6)
+    
+    // DOM Elements
+    const box = document.getElementById('queueBox');
+    const btnSet = document.getElementById('queueSettingBtn');
+    const btnPos = document.getElementById('queuePosBtn'); // 위치 버튼
+    const popup = document.getElementById('queueSettings');
+    
+    // Controls (Single Scale)
+    const btnMinus = document.getElementById('qsScaleMinus');
+    const btnPlus  = document.getElementById('qsScalePlus');
+    const txtVal   = document.getElementById('qsScaleVal');
+
+    // Helper to read CSS variable
+    const getCssVar = (name, fallback) => {
+      const val = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return val ? parseInt(val, 10) : fallback;
+    };
+
+    // Base Values (기본값)
+    const BASE_W = getCssVar('--queue-width', 280);
+    const BASE_H = getCssVar('--queue-height', 300);
+    const BASE_F = getCssVar('--queue-font-base', 15);
+
+    // Step Units (증감 단위)
+    const UNIT_W = getCssVar('--step-width', 30);
+    const UNIT_H = getCssVar('--step-height', 40);
+    const UNIT_F = getCssVar('--step-font-size', 2);
+
+    // 0: BL, 1: TL
+    const POSITIONS = ['pos-bl', 'pos-tl']; // 순환 경로에서 pos-br 제거
+    const config = {
+      step: 0,
+      pos: 0 
+    };
+
+    // 1. Load & Apply
+    function loadConfig(){
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if(saved) {
+          const parsed = JSON.parse(saved);
+          if (typeof parsed.step === 'number') config.step = parsed.step;
+          // 저장된 pos가 유효한 범위 내에 있는지 확인
+          if (typeof parsed.pos === 'number' && parsed.pos >= 0 && parsed.pos < POSITIONS.length) {
+            config.pos = parsed.pos;
+          }
+        }
+      } catch(e){ console.warn('Settings load failed', e); }
+      applyConfig();
+    }
+
+    function applyConfig(){
+      const s = config.step;
+
+      // 값 계산
+      const currW = BASE_W + (s * UNIT_W);
+      const currH = BASE_H + (s * UNIT_H);
+      const currF = BASE_F + (s * UNIT_F);
+
+      // CSS 적용
+      const root = document.documentElement;
+      root.style.setProperty('--queue-width', currW + 'px');
+      root.style.setProperty('--queue-height', currH + 'px');
+      
+      // 폰트 관련 변수 일괄 업데이트
+      root.style.setProperty('--queue-font-base', currF + 'px');
+      root.style.setProperty('--queue-title-font-size', (currF + 5) + 'px');
+      root.style.setProperty('--queue-status-font-size', (currF + 3) + 'px');
+      root.style.setProperty('--queue-table-header-font-size', currF + 'px');
+      
+      // 텍스트 표시 업데이트
+      txtVal.textContent = formatStep(s);
+
+      // 위치 적용
+      updatePositionClass();
+    }
+
+    function updatePositionClass() {
+      box.classList.remove('pos-bl', 'pos-tl', 'pos-tr', 'pos-br'); // 모든 클래스 제거
+      box.classList.add(POSITIONS[config.pos]); // 새 위치 클래스 추가
+    }
+
+    function formatStep(val) {
+      if (val === 0) return '기본';
+      return val > 0 ? `+${val}` : `${val}`;
+    }
+
+    function saveConfig(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+    }
+
+    function updateStep(delta) {
+      const newVal = config.step + delta;
+      // 0(기본) ~ 5(+5) 범위로 제한
+      if (newVal >= 0 && newVal <= 5) {
+        config.step = newVal;
+        applyConfig();
+        saveConfig();
+      }
+    }
+
+    // 2. Events
+    // Toggle Popup
+    btnSet.addEventListener('click', (e) => {
+      e.stopPropagation();
+      popup.classList.toggle('show');
+    });
+
+    // Position Toggle
+    if(btnPos) {
+      btnPos.addEventListener('click', (e) => {
+        e.stopPropagation();
+        config.pos = (config.pos + 1) % POSITIONS.length; // POSITIONS 배열 길이에 맞춰 순환
+        applyConfig();
+        saveConfig();
+      });
+    }
+
+    // Close when clicking outside
+    document.addEventListener('click', (e) => {
+      if(!box.contains(e.target)) popup.classList.remove('show');
+    });
+    popup.addEventListener('click', e => e.stopPropagation());
+
+    // Scale Control
+    btnMinus.addEventListener('click', () => updateStep(-1));
+    btnPlus.addEventListener('click',  () => updateStep(1));
+
+    // Init
+    loadConfig();
+  })();
 </script>
 </body>
 </html>
