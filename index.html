@@ -28,17 +28,21 @@
        ========================================================= */
 
     /* [셔플 텍스트 효과] */
-    --shuffle-text-content: "playing_cards 카드를 섞는중..";
+    --shuffle-text-content: "카 드 를  섞 는 중 .. playing_cards";
     --shuffle-text-color: #ffffff;
-    --shuffle-text-size: 60px;
-    --shuffle-overlay-bg: rgba(0,0,0,0.2);
-    --shuffle-blur-strength: 1px;
+    --shuffle-text-size: 65px;
+    --shuffle-overlay-bg: rgba(0,0,0,0.5);
+    --shuffle-blur-strength: 2px;
     --shuffle-turn-delay: 0.3s;
     --shuffle-repeat-delay: 1.5s;
     --shuffle-duration: 0.8s;
   
-    /* [아이콘 사이즈] */
-    --hide-icon-size: 50px;    /* 대기열 숨기기/셔플 버튼 크기 */
+    /* [아이콘 사이즈 & 우측 하단 버튼 설정] */
+    --fab-width: 50px;       /* 버튼 너비 */
+    --fab-icon-size: 50px;   /* 아이콘 크기 */
+    --fab-label-size: 10px;  /* 하단 텍스트 크기 */
+    --fab-spacing: 12px;     /* 버튼 간 간격 */
+    
     --shuffle-icon-size: 1em;  /* 셔플 애니메이션 내 아이콘 상대 크기 */
 
     /* --- 앱 레이아웃 --- */
@@ -48,6 +52,19 @@
 
     /* --- 대기열 (Queue) 레이아웃 --- */
     --queue-width: 280px;
+
+    /* --- 타이틀 텍스트 (Title Mode) --- */
+    --title-text: "다니얀의 타로데이";
+    
+    /* [타이틀 오로라 효과 설정] */
+    --aurora-font-size: 50px;
+    --aurora-speed: 9s;
+    --aurora-angle: auto; /* auto = linear-gradient default (to right) */
+    --aurora-color-1: #00aeba;
+    --aurora-color-2: #7957eb;
+    --aurora-color-3: #2a2aff;
+    --aurora-color-4: #2cc781;
+    --aurora-color-5: #10c7ff;
     --queue-height: 300px;
     --queue-bg: rgba(23, 26, 33, 0.1);
     --queue-z-index: 9000;
@@ -171,6 +188,151 @@
     padding:6px 10px; border-radius:10px; background:rgba(255,255,255,.18); color:#fff;
     font-size:22px; font-weight:800; cursor:pointer;
   }
+
+  /* --- 토글 버튼 및 타이틀 스타일 --- */
+  .toggle-btn {
+    position: fixed;
+    bottom: 16px;
+    /* 우측 하단 배치: (마진 16px) + (숨기기버튼) + (간격) + (셔플버튼) + (간격) */
+    right: calc(16px + var(--fab-width) + var(--fab-spacing) + var(--fab-width) + var(--fab-spacing));
+    z-index: 9002;
+    
+    width: var(--fab-width);
+    height: auto; /* 텍스트 포함 높이 자동 */
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    border-radius: 12px; /* 둥근 사각형 */
+
+    /* font-size는 자식 요소에서 개별 정의 */
+    color: rgba(255, 255, 255, 0.5); 
+    cursor: pointer;
+    transition: transform 0.2s, color 0.2s, background 0.2s;
+    user-select: none;
+  }
+  .toggle-btn:hover { 
+    color: #fff; 
+    transform: scale(1.05);
+    background: rgba(255,255,255,0.1);
+  }
+  .toggle-btn .material-symbols-outlined {
+    font-size: var(--fab-icon-size);
+  }
+  .toggle-btn .btn-label {
+    font-size: var(--fab-label-size);
+    font-weight: normal;
+    white-space: nowrap;
+    line-height: 1;
+  }
+
+  .status-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .app-title {
+    display: none; /* 기본 숨김 */
+  }
+  
+  /* --- 오로라 텍스트 효과 애니메이션 --- */
+  @keyframes aurora-text {
+    to { background-position: 200% center; }
+  }
+
+  /* 라이트박스 내부 래퍼 */
+  .light-inner-box {
+    position: relative;
+    width: fit-content;
+    height: fit-content;
+    display: flex; 
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* 회전 버튼 (모달 우측 하단 바깥) */
+  .floating-rotate-btn {
+    position: absolute;
+    bottom: 0;
+    right: -80px; /* 모달 밖으로 이동 (버튼 크기 60 + 여백 20) */
+    z-index: 10010;
+    width: 60px; /* 기존 너비 유지 */
+    height: auto; /* 내용에 맞춰 높이 자동 조절 */
+    padding: 8px 5px; /* 상하좌우 패딩 */
+    background: rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px; /* 둥근 사각형 형태로 변경 */
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column; /* 아이콘과 텍스트 세로 정렬 */
+    justify-content: center;
+    align-items: center;
+    gap: 4px; /* 아이콘과 텍스트 사이 간격 */
+    transition: background 0.2s, transform 0.2s;
+  }
+  .floating-rotate-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.1);
+    border-color: #fff;
+  }
+  .floating-rotate-btn .material-symbols-outlined {
+    font-size: 32px; /* 아이콘 크기 유지 */
+  }
+  .floating-rotate-btn .btn-label {
+    font-size: 12px; /* 텍스트 크기 */
+    font-weight: normal;
+    white-space: nowrap; /* 텍스트 줄바꿈 방지 */
+    line-height: 1; /* 줄 높이 조절 */
+  }
+
+  /* 타이틀 모드 활성화 시 */
+  .status-box.show-title {
+    /* 기존 회색 배경/테두리 제거 */
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important; 
+    box-shadow: none !important;
+  }
+
+  .status-box.show-title .status-content {
+    display: none;
+  }
+  
+  .status-box.show-title .app-title {
+    display: inline-block;
+    font-weight: 900;
+    font-size: var(--aurora-font-size);
+    text-transform: uppercase;
+    
+    /* 오로라 그라디언트 적용 */
+    background-image: linear-gradient(
+      to right,
+      var(--aurora-color-1) 0%,
+      var(--aurora-color-2) 20%,
+      var(--aurora-color-3) 40%,
+      var(--aurora-color-4) 60%,
+      var(--aurora-color-5) 80%,
+      var(--aurora-color-1) 100%
+    );
+    background-size: 200% auto;
+    
+    /* 텍스트 클리핑 */
+    color: #fff; /* fallback */
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    animation: aurora-text var(--aurora-speed) linear infinite;
+  }
+  
+  .app-title::before {
+    content: var(--title-text);
+  }
+
   .mini-spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(0,0,0,.25);border-top-color:#000;display:none;animation:spin .9s linear infinite}
   .mini-spin.on{display:inline-block}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -580,22 +742,40 @@
   /* 숨김 버튼 스타일 변경 */
   .queue-box.minimized #queuePosBtn {
     pointer-events: auto;
-    width: var(--hide-icon-size);
-    height: var(--hide-icon-size);
-    padding: 0;
+    width: var(--fab-width);
+    height: auto; /* 텍스트 포함 */
+    padding: 8px 0;
     color: rgba(255, 255, 255, 0.5);
     background: transparent;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 2px;
+    border-radius: 12px;
+    transition: transform 0.2s, color 0.2s, background 0.2s;
   }
   .queue-box.minimized #queuePosBtn:hover {
     color: rgba(255, 255, 255, 1);
-    background: transparent;
+    background: rgba(255,255,255,0.1);
+    transform: scale(1.05);
   }
   
   .queue-box.minimized #queuePosBtn .material-symbols-outlined {
-    font-size: var(--hide-icon-size) !important;
+    font-size: var(--fab-icon-size) !important;
+  }
+  
+  /* 기본 상태에서는 라벨 숨김 */
+  #queuePosBtn .btn-label {
+    display: none;
+  }
+  /* 최소화 상태에서만 라벨 표시 */
+  .queue-box.minimized #queuePosBtn .btn-label {
+    display: block;
+    font-size: var(--fab-label-size);
+    font-weight: normal;
+    white-space: nowrap;
+    line-height: 1;
   }
 
   /* 설정 팝업 스타일 */
@@ -752,27 +932,38 @@
   #playingCardsBtn {
     position: fixed;
     bottom: 16px;
-    right: calc(16px + var(--hide-icon-size) + 12px);
-    width: var(--hide-icon-size);
-    height: var(--hide-icon-size);
+    /* 우측 하단 배치: (마진 16px) + (숨기기버튼) + (간격) */
+    right: calc(16px + var(--fab-width) + var(--fab-spacing));
+    width: var(--fab-width);
+    height: auto; /* 텍스트 포함 높이 자동 */
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    border-radius: 12px;
+
     background: transparent;
     border: none;
     color: rgba(255, 255, 255, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
     cursor: pointer;
     z-index: 9001; /* 대기열보다 위에 배치 */
-    padding: 0;
-    transition: transform 0.2s, color 0.2s;
+    transition: transform 0.2s, color 0.2s, background 0.2s;
   }
   #playingCardsBtn:hover {
-    background: transparent;
+    background: rgba(255,255,255,0.1);
     color: #fff;
-    transform: scale(1.1);
+    transform: scale(1.05);
   }
   #playingCardsBtn .material-symbols-outlined {
-    font-size: var(--hide-icon-size); /* 아이콘 크기를 버튼 크기에 맞춤 */
+    font-size: var(--fab-icon-size); /* 아이콘 크기를 버튼 크기에 맞춤 */
+  }
+  #playingCardsBtn .btn-label {
+    font-size: var(--fab-label-size);
+    font-weight: normal;
+    white-space: nowrap;
+    line-height: 1;
   }
 
   /* Shuffle Text Overlay */
@@ -818,15 +1009,26 @@
 </head>
 
 <body>
+  <div id="titleToggleBtn" class="toggle-btn" title="모드 전환">
+    <span class="material-symbols-outlined">group</span>
+    <span class="btn-label">모드</span>
+  </div>
+            
   <div class="app" id="appRoot">
     <section class="left">
       <div class="controls">
         <!-- 1줄: 상태 -->
         <div class="controls-row top">
           <div id="statusBox" class="status-box" title="클릭하여 갱신">
-            <span class="label">현재 :</span>
-            <span id="statusVal" class="val"></span>
-            <span id="statusSpinner" class="mini-spin"></span>
+            <!-- 기본 상태 (현재: [c6][d6]) -->
+            <div id="statusNormal" class="status-content">
+              <span class="label">현재 :</span>
+              <span id="statusVal" class="val"></span>
+              <span id="statusSpinner" class="mini-spin"></span>
+            </div>
+
+            <!-- 타이틀 상태 -->
+            <span id="appTitle" class="app-title"></span>
           </div>
         </div>
         <!-- 2줄: RESET / 검색 / 정역 / 결정 -->
@@ -853,12 +1055,12 @@
 
     <!-- 메모장 (기본: 접힘 / 버튼은 앱 우상단 도킹) -->
     <aside class="memo collapsed" id="memo">
-      <div class="memo-header" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+      <div class="memo-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
         <h3 style="margin:0">메모장</h3>
         <button id="memoToggle" class="skewed small" type="button" aria-pressed="true">메모장 열기</button>
       </div>
       <div class="memo-body">
-        <textarea placeholder="자유롭게 메모하세요. (서버 저장 없음)" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+        <textarea placeholder="자유롭게 메모하세요." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
       </div>
     </aside>
   </div>
@@ -872,6 +1074,7 @@
         <!-- 숨기기 토글 버튼 -->
         <button type="button" class="icon-btn" title="숨기기" id="queuePosBtn">
           <span class="material-symbols-outlined" style="font-size: 20px;">hide</span>
+          <span class="btn-label">대기열</span>
         </button>
         <!-- 설정 아이콘 (Settings) -->
         <button type="button" class="icon-btn" title="설정" id="queueSettingBtn">
@@ -924,7 +1127,7 @@
         <a href="./all_cards.html" id="viewAllCardsBtn" class="skewed" target="_blank"><span>카드만보기</span></a>
         <label class="flip" style="width:260px; height:44px;">
           <input id="readFlip" type="checkbox" />
-          <div class="track"><div class="seg">소개글</div><div class="seg">Log</div></div>
+          <div class="track"><div class="seg">소개글</div><div class="seg">변경사항</div></div>
           <div class="thumb" id="readThumb">소개글</div>
         </label>
       </div>
@@ -944,7 +1147,7 @@
               1) <span style="color:#54A9FF"><font size=4><strong>"폴더 선택"</strong></font></span>을 클릭하여 카드 이미지가 있는 폴더를 선택합니다.<br>
               선택할 경로는 <span style="color:#ff8c8c"><font size=3>카드가 뭉쳐진 폴더</font></span>를 선택하시면 됩니다.<br>
               <span style="color:#ff8c8c">폴더를 선택하지 않으면 기본 카드를 사용합니다.</span><br>
-              카드 이름의 정상적용 여부는 Log 버튼 클릭 시 확인 가능<br><br>
+              카드 이름의 정상적용 여부는 변경사항 버튼 클릭 시 확인 가능<br><br>
               2) <span style="color:#54A9FF"><font size=4><strong>“다음”</strong></font></span> 클릭 후 시작합니다. 이미지가 없어도 OK <br><br>
             </p>
             <p style='line-height:2'>— <em>자세한 내용</em><br>
@@ -976,15 +1179,18 @@
 
   <!-- 카드 라이트박스 -->
   <div id="cardOverlay" class="veil hide">
-    <div id="lightWrap" class="lightWrap" role="dialog" aria-modal="true" aria-label="Card preview">
-      <img id="lightImg" class="lightImg" alt="선택 카드">
-      <div id="lightCap" class="lightCap">
-        <span id="lightCapText"></span>
-        <button id="lightRotateBtn" class="icon-btn rotate-btn" type="button" title="회전" style="display:none;">
-          <span class="material-symbols-outlined">rotate_90_degrees_ccw</span>
-          <span class="btn-label">회전</span>
-        </button>
+    <div class="light-inner-box">
+      <div id="lightWrap" class="lightWrap" role="dialog" aria-modal="true" aria-label="Card preview">
+        <img id="lightImg" class="lightImg" alt="선택 카드">
+        <div id="lightCap" class="lightCap">
+          <span id="lightCapText"></span>
+        </div>
       </div>
+      <!-- 회전 버튼 (모달 밖 우측 하단) -->
+      <button id="lightRotateBtn" class="icon-btn floating-rotate-btn" type="button" title="회전" style="display:none;">
+        <span class="material-symbols-outlined" style="font-size: 32px;">rotate_90_degrees_ccw</span>
+        <span class="btn-label">회전</span>
+      </button>
     </div>
   </div>
 
@@ -1000,6 +1206,7 @@
     '> 타로 대기열 숨기기 추가',
     '> 카드 섞기 Status 추가',
     '> 검색 리스너 개선',
+    '> 게스트 초대형 타로데이 대비 상단 모드 추가',
     'Ver. 3.1',
     '> 타로 대기열 레이아웃 추가.',
     '> 버튼 디자인 수정',
@@ -1270,7 +1477,7 @@
   const lightCap  = document.getElementById('lightCap');
 
   /* ====== "현재:" 패널 (GAS API 연동) ====== */
-  function statusLoading(on){ 
+  function statusLoading(on){
     elStatusSpin.classList.toggle('on', !!on); 
     if(elQueueSpin) elQueueSpin.classList.toggle('on', !!on); // 대기열 스피너 토글
   }
@@ -1470,11 +1677,20 @@
 
     document.body.appendChild(script);
   }
+  // [추가] 타이틀 토글 버튼 이벤트
+  const elTitleToggleBtn = document.getElementById('titleToggleBtn');
+  if (elTitleToggleBtn) {
+    elTitleToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // 부모(elStatusBox)의 refreshStatus 이벤트 전파 방지
+      elStatusBox.classList.toggle('show-title');
+    });
+  }
+
   elStatusBox.addEventListener('click', refreshStatus); // 클릭으로 갱신
 
   /* 소개글/Log 토글 */
   function setReadMode(isLog){
-    elReadThumb.textContent = isLog ? 'Log' : '소개글';
+    elReadThumb.textContent = isLog ? '변경사항' : '소개글';
     elIntro.style.display   = isLog ? 'none' : 'block';
     elIntro.setAttribute('aria-hidden', isLog ? 'true' : 'false');
     elLog.style.display     = isLog ? 'block' : 'none';
@@ -1492,7 +1708,7 @@
   (function initTitle(){
     elTitleImg.src = PLACEHOLDER;
     const test = new Image();
-    test.onload  = () => { elTitleImg.src = TITLE_URL; elMsg.textContent=''; };
+    test.onload   = () => { elTitleImg.src = TITLE_URL; elMsg.textContent=''; };
     test.onerror = () => { elMsg.textContent = '타이틀 이미지 로드 실패'; };
     test.src = TITLE_URL;
   })();
@@ -2105,6 +2321,7 @@
 <!-- Playing Cards Button -->
 <button id="playingCardsBtn" title="카드섞을때 누르세요">
   <span class="material-symbols-outlined">playing_cards</span>
+  <span class="btn-label">섞을때 사용</span>
 </button>
 
 <!-- Shuffle Text Overlay -->
