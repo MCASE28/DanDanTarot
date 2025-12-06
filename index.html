@@ -2210,7 +2210,7 @@
      ✅ 대기열 설정 (Queue Settings) 로직 - 통합 크기 조절 (Scale) & 위치 이동
      ========================================================= */
   (function initQueueSettings(){
-    const STORAGE_KEY = 'dandan_queue_config_v6_pos'; // 키 변경 (초기화 v6)
+    const STORAGE_KEY = 'dandan_config'; // 키 변경
     
     // DOM Elements
     const box = document.getElementById('queueBox');
@@ -2245,6 +2245,9 @@
 
     // 1. Load & Apply
     function loadConfig(){
+      // 앱 로드 시 로컬 스토리지에서 이전 'dandan_config' 데이터 자동 삭제
+      localStorage.removeItem(STORAGE_KEY); 
+
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if(saved) {

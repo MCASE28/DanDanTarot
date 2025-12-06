@@ -99,17 +99,23 @@
     justify-content: flex-start;
     padding-bottom: 80px;
   }
-  #allCardsView .card-image {
+  #allCardsView .card-thumb {
     width: 250px;
-    height: auto;
+    height: 400px;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 12px;
     border: 1px solid var(--stroke);
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #0c0f14;
+    background-position: center;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
   }
-  #allCardsView .card-image:hover {
-    transform: scale(1.1);
+  #allCardsView .card-thumb:hover {
+    transform: scale(1.05);
     border-color: var(--link);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    z-index: 5;
   }
   .close-btn {
     display: inline-flex;
@@ -136,7 +142,24 @@
     box-shadow:0 14px 60px rgba(0,0,0,.6); overflow:hidden;
     display:flex; flex-direction:column; align-items:stretch;
   }
-  .lightImg{width:100%; height:100%; object-fit:contain; background:#080c12}
+  .lightMediaWrap {
+    position: relative;
+    width: 100%;
+    background: #080c12;
+    overflow: hidden;
+  }
+  .lightImg{
+    width:100%; height:100%; object-fit:contain; display:block;
+  }
+  .lightFrame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 10;
+  }
   .lightCap{
     padding:calc(10px * var(--fs-scale)) calc(14px * var(--fs-scale));
     border-top:1px solid rgba(230,237,245,.15);
@@ -157,7 +180,10 @@
   </div>
   <div id="cardOverlay" class="veil hide">
     <div id="lightWrap" class="lightWrap" role="dialog" aria-modal="true" aria-label="Card preview">
-      <img id="lightImg" class="lightImg" alt="선택 카드">
+      <div id="lightMediaWrap" class="lightMediaWrap">
+        <img id="lightImg" class="lightImg" alt="선택 카드">
+        <img id="lightFrame" class="lightFrame" alt="" role="presentation">
+      </div>
       <div id="lightCap" class="lightCap"></div>
     </div>
   </div>
@@ -179,7 +205,9 @@
   // --- DOM Refs ---
   const overlay = document.getElementById('cardOverlay');
   const lightWrap = document.getElementById('lightWrap');
+  const lightMediaWrap = document.getElementById('lightMediaWrap');
   const lightImg = document.getElementById('lightImg');
+  const lightFrame = document.getElementById('lightFrame');
   const lightCap = document.getElementById('lightCap');
   const elCardContainer = document.getElementById('card-container');
   const elCloseBtn = document.getElementById('closeBtn');
@@ -235,24 +263,32 @@
     if (imgH + FS_CAPTION_H > maxH) { imgH = maxH - FS_CAPTION_H; imgW = imgH * aspect; }
     lightWrap.style.width  = `${Math.floor(imgW)}px`;
     lightWrap.style.height = `${Math.floor(imgH + FS_CAPTION_H)}px`;
-    const mediaElement = lightWrap.querySelector('video.lightImg') || lightImg;
-    if (mediaElement) { mediaElement.style.height = `${Math.floor(imgH)}px`; }
+    
+    if (lightMediaWrap) { lightMediaWrap.style.height = `${Math.floor(imgH)}px`; }
+    
     const scale = Math.max(0.75, Math.min(1.8, imgW / FS_BASE_IMG_W));
     lightWrap.style.setProperty('--fs-scale', scale.toFixed(3));
   }
 
   function openFullscreen(card){
-    const oldMedia = lightWrap.querySelector('video.lightImg');
+    const oldMedia = lightMediaWrap.querySelector('video.lightImg');
     if (oldMedia) { oldMedia.remove(); }
     lightImg.style.display = 'none';
     lightImg.src = PLACEHOLDER;
     const cardIdValue = cardId(card);
     const displayName = card.displayName || card.eng;
     lightCap.textContent = displayName + (card.reversed ? ' (역방향)' : '');
+    
     const cardFileNameBase = expectedFilenameForCard(card).replace(/\.png$/, '');
-    const imageUrl = `./assets/img/${cardFileNameBase}.png`;
+    const imageUrl = `./assets/img/card/${cardFileNameBase}.png`;
     const mediaUrl = `./assets/vid/${cardFileNameBase}.webm`;
-    const isVideo = true;
+    const frameUrl = `./assets/img/frame/${cardFileNameBase}.png`;
+    
+    // Set frame source
+    lightFrame.src = frameUrl;
+
+    const isVideo = true; // Assuming we want to try video first as per previous logic
+    
     if (isVideo) {
         const video = document.createElement('video');
         video.className = 'lightImg';
@@ -263,7 +299,9 @@
         video.controls = false;
         video.setAttribute('playsinline', '');
         video.src = mediaUrl;
+        
         video.play().catch(e => console.warn("Autoplay was prevented:", e));
+        
         video.onerror = function() {
             console.log(`비디오 로드 실패: ${mediaUrl}. 이미지로 대체합니다.`);
             this.remove();
@@ -271,7 +309,16 @@
             lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
             lightImg.style.display = 'block';
         };
-        lightWrap.insertBefore(video, lightImg);
+        
+        // Insert video into the wrapper, before the frame (which has higher z-index)
+        // But actually, simple append works if we ensure only one media exists.
+        // lightMediaWrap has: [img#lightImg, img#lightFrame]
+        // We want to insert video before lightFrame?
+        // lightFrame is z-index 10, absolute.
+        // Video is standard flow (or absolute if I changed CSS).
+        // lightImg is standard flow.
+        // Only one of Video or lightImg should be visible/present.
+        lightMediaWrap.insertBefore(video, lightFrame);
     } else {
         lightImg.src = imageUrl;
         lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
@@ -322,7 +369,7 @@
     const ALL_CARDS = getTarotDB();
     const IMAGE_MAP = ALL_CARDS.reduce((map, card) => {
         const filename = expectedFilenameForCard(card);
-        map[cardId(card)] = `./assets/img/${filename}`;
+        map[cardId(card)] = `./assets/img/card/${filename}`;
         return map;
     }, {});
     
@@ -360,7 +407,12 @@
         html += `<h2>${title}</h2><div class="card-grid">`;
         cardsToRender.forEach(card => {
           const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
-          html += `<img src="${url}" alt="${card.displayName}" class="card-image" data-card-id="${cardId(card)}" title="${card.displayName}">`;
+          const filename = expectedFilenameForCard(card);
+          const frameUrl = `./assets/img/frame/${filename}`;
+          // Frame on top, card image below
+          const bgStyle = `background-image: url('${frameUrl}'), url('${url}');`;
+          
+          html += `<div class="card-thumb" style="${bgStyle}" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}"></div>`;
         });
         html += '</div>';
       } else {
@@ -370,9 +422,14 @@
 
         cardsToRender.forEach(card => {
             const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
-            const imgHTML = `<img src="${url}" alt="${card.displayName}" class="card-image" data-card-id="${cardId(card)}" title="${card.displayName}">`;
-            if (card.type === 'major') majorHTML += imgHTML;
-            else if (card.suit && suitHTML[card.suit]) suitHTML[card.suit] += imgHTML;
+            const filename = expectedFilenameForCard(card);
+            const frameUrl = `./assets/img/frame/${filename}`;
+            const bgStyle = `background-image: url('${frameUrl}'), url('${url}');`;
+            
+            const divHTML = `<div class="card-thumb" style="${bgStyle}" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}"></div>`;
+            
+            if (card.type === 'major') majorHTML += divHTML;
+            else if (card.suit && suitHTML[card.suit]) suitHTML[card.suit] += divHTML;
         });
 
         majorHTML += '</div>';
@@ -383,7 +440,7 @@
       elCardContainer.innerHTML = html;
 
       // Re-attach listeners to new images
-      elCardContainer.querySelectorAll('.card-image').forEach(img => {
+      elCardContainer.querySelectorAll('.card-thumb').forEach(img => {
           img.addEventListener('click', () => {
               const cId = img.dataset.cardId;
               const card = ALL_CARDS.find(c => cardId(c) === cId);
