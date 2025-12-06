@@ -117,6 +117,32 @@
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     z-index: 5;
   }
+  
+  /* 카드 이미지 겹치기 스타일 */
+  .card-thumb.img-stack {
+      border: 1px solid var(--stroke); /* Keep original border */
+      background: transparent;
+      overflow: hidden;
+      display: block;
+      position: relative; /* Ensure relative positioning for absolute children */
+  }
+  .card-thumb.img-stack .card-layer, 
+  .card-thumb.img-stack .frame-layer {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+  }
+  .card-thumb.img-stack .frame-layer {
+      z-index: 2;
+      object-fit: fill; /* Frame should stretch */
+  }
+  .card-thumb.img-stack .card-layer {
+      z-index: 1;
+      background: #0c0f14;
+  }
   .close-btn {
     display: inline-flex;
     align-items: center;
@@ -408,11 +434,19 @@
         cardsToRender.forEach(card => {
           const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
           const filename = expectedFilenameForCard(card);
-          const frameUrl = `./assets/img/frame/${filename}`;
-          // Frame on top, card image below
-          const bgStyle = `background-image: url('${frameUrl}'), url('${url}');`;
           
-          html += `<div class="card-thumb" style="${bgStyle}" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}"></div>`;
+          const cardSrc = url || `./assets/img/card/${filename}`;
+          const frameSrc = `./assets/img/frame/${filename}`;
+          
+          const isBlob = url && url.startsWith('blob:');
+          const cardErr = isBlob ? '' : `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'card')"`;
+          const frameErr = `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'frame')"`;
+          
+          html += `
+            <div class="card-thumb img-stack" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}">
+                <img src="${cardSrc}" class="card-layer" alt="${card.displayName}" ${cardErr}>
+                <img src="${frameSrc}" class="frame-layer" alt="" ${frameErr}>
+            </div>`;
         });
         html += '</div>';
       } else {
@@ -423,10 +457,21 @@
         cardsToRender.forEach(card => {
             const url = IMAGE_MAP[cardId(card)] || PLACEHOLDER;
             const filename = expectedFilenameForCard(card);
-            const frameUrl = `./assets/img/frame/${filename}`;
-            const bgStyle = `background-image: url('${frameUrl}'), url('${url}');`;
             
-            const divHTML = `<div class="card-thumb" style="${bgStyle}" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}"></div>`;
+            // 이미지 스택 구조로 변경
+            const cardSrc = url || `./assets/img/card/${filename}`;
+            const frameSrc = `./assets/img/frame/${filename}`;
+            
+            // onerror 핸들러 추가
+            const isBlob = url && url.startsWith('blob:');
+            const cardErr = isBlob ? '' : `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'card')"`;
+            const frameErr = `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'frame')"`;
+            
+            const divHTML = `
+            <div class="card-thumb img-stack" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}">
+                <img src="${cardSrc}" class="card-layer" alt="${card.displayName}" ${cardErr}>
+                <img src="${frameSrc}" class="frame-layer" alt="" ${frameErr}>
+            </div>`;
             
             if (card.type === 'major') majorHTML += divHTML;
             else if (card.suit && suitHTML[card.suit]) suitHTML[card.suit] += divHTML;
@@ -448,6 +493,21 @@
           });
       });
     }
+    
+    // [신규] 이미지 로딩 에러 시 대소문자 변환 재시도 함수 (Global scope for inline onerror)
+    window.fixImageSrc = function(img, baseName, type) {
+      if (img.dataset.retryDone) return;
+      const ext = '.png';
+      if (!img.dataset.tryUpper) {
+          img.dataset.tryUpper = "1";
+          img.src = `./assets/img/${type}/${baseName.toUpperCase()}${ext}`;
+      } else if (!img.dataset.tryLower) {
+          img.dataset.tryLower = "1";
+          img.src = `./assets/img/${type}/${baseName.toLowerCase()}${ext}`;
+      } else {
+          img.dataset.retryDone = "1";
+      }
+    };
 
     // --- Button Generation and Event Listeners ---
     const btnContainer = document.getElementById('custom-btn-container');
