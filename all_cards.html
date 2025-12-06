@@ -311,8 +311,9 @@
     const mediaUrl = `./assets/vid/${cardFileNameBase}.webm`;
     const frameUrl = `./assets/img/frame/${cardFileNameBase}.png`;
     
-    // Set frame source
+    // Set frame source and apply rotation
     lightFrame.src = frameUrl;
+    lightFrame.style.transform = card.reversed ? 'rotate(180deg)' : 'none'; // 프레임도 회전
 
     const isVideo = true; // Assuming we want to try video first as per previous logic
     
@@ -338,13 +339,6 @@
         };
         
         // Insert video into the wrapper, before the frame (which has higher z-index)
-        // But actually, simple append works if we ensure only one media exists.
-        // lightMediaWrap has: [img#lightImg, img#lightFrame]
-        // We want to insert video before lightFrame?
-        // lightFrame is z-index 10, absolute.
-        // Video is standard flow (or absolute if I changed CSS).
-        // lightImg is standard flow.
-        // Only one of Video or lightImg should be visible/present.
         lightMediaWrap.insertBefore(video, lightFrame);
     } else {
         lightImg.src = imageUrl;
@@ -372,25 +366,25 @@
     // ✅ 커스텀 카드 목록 수정 영역 (.png 확장자 제외)
     // =========================================================
     const CUSTOM_CARD_SETS = {
-      "btn2": ["Judgement","Magician","Swords09","Wands08"],                                       // 한세긴
-      "btn3": ["Coins10","Cups01","Empress","Sun","Swords03","Wands09"],                          // 송밤
-      "btn4": ["Hermit","Justice","Swords05","Wands07"],  // 나비
-      "btn5": ["Coins04","Cups08","Fool","HangedMan","Lovers","Wands04"],                                   // 다니얀
-      "btn6": ["Cups02","Hierophant","Tower"],                                   // 밤베
-      "btn7": ["Coins02","Devil","Swords04","Swords06"],                                   // 밤새나
-      "btn8": ["Coins06","Cups09","Star","Wands06"],                                   // 요코링
-      "btn9": ["Coins09","Cups10","Emperor","Swords08"],                                   // 윰로로
-      "btn10": ["HighPriestess","Swords10","Temperance","Wands01","Wands05"],                                  // 찌로
-      "btn11": ["Coins03","Cups06","Moon"],                                  // 크앙희
-      "btn12": ["Cups07","Death","Wands02","Wands03"],                                  // 프하
-      "btn13": ["Coins07","Swords07","World"],                  // 호발
-      "btn14": ["WandsPage","CoinsPage","CupsPage","SwordsPage"],                                  // 공도리
-      "btn15": ["Chariot","Coins08","Cups03","Wands10"],                                  // 도라희
-      "btn16": ["Coins01","Cups04","Cups05","Strength",],                                  // 소호
-      "btn17": ["Coins05","Swords02","WheelofFortune"],             // 한세현
-      "btn18": ["WandsQueen","CoinsQueen","CupsQueen","SwordsQueen"],                                  // 빕어
-      "btn19": ["WandsKnight","CoinsKnight","CupsKnight","SwordsKnight"],                                  // 청아
-      "btn20": ["WandsKing","CoinsKing","CupsKing","SwordsKing"],                                  // 대표님
+      "btn2": ["judgement","magician","swords09","wands08"],                                       // 한세긴
+      "btn3": ["coins10","cups01","empress","sun","swords03","wands09"],                          // 송밤
+      "btn4": ["hermit","justice","swords05","wands07"],  // 나비
+      "btn5": ["coins04","cups08","fool","hangedman","lovers","wands04"],                                   // 다니얀
+      "btn6": ["cups02","hierophant","tower"],                                   // 밤베
+      "btn7": ["coins02","devil","swords04","swords06"],                                   // 밤새나
+      "btn8": ["coins06","cups09","star","wands06"],                                   // 요코링
+      "btn9": ["coins09","cups10","emperor","swords08"],                                   // 윰로로
+      "btn10": ["highpriestess","swords10","temperance","wands01","wands05"],                                  // 찌로
+      "btn11": ["coins03","cups06","moon"],                                  // 크앙희
+      "btn12": ["cups07","death","wands02","wands03"],                                  // 프하
+      "btn13": ["coins07","swords07","world"],                  // 호발
+      "btn14": ["wandspage","coinspage","cupspage","swordspage"],                                  // 공도리
+      "btn15": ["chariot","coins08","cups03","wands10"],                                  // 도라희
+      "btn16": ["coins01","cups04","cups05","strength",],                                  // 소호
+      "btn17": ["coins05","swords02","wheeloffortune"],             // 한세현
+      "btn18": ["wandsqueen","coinsqueen","cupsqueen","swordsqueen"],                                  // 빕어
+      "btn19": ["wandsknight","coinsknight","cupsknight","swordsknight"],                                  // 청아
+      "btn20": ["wandsking","coinsking","cupsking","swordsking"],                                  // 대표님
     };
 
     const ALL_CARDS = getTarotDB();

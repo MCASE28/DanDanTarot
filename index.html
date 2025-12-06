@@ -1978,7 +1978,7 @@
                 <img src="${frameSrc}" class="frame-layer" alt="">
             </div>
             <div class="cap-row">
-              <div class="cap" title="${displayName}">${displayName}</div>
+              <div class="cap" title="${displayName + (c.reversed ? ' (역방향)' : '')}">${displayName + (c.reversed ? ' (역방향)' : '')}</div>
               <button class="remove" title="카드 제거">
                 <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
               </button>
@@ -2035,20 +2035,19 @@
     }
 
     if (rotateBtn) {
+        // 역방향일 때만 회전 버튼 표시 (정방향으로 돌려보는 기능)
         rotateBtn.style.display = card.reversed ? 'flex' : 'none';
         rotateBtn.onclick = (e) => {
             e.stopPropagation();
-            // 현재 표시 중인 미디어(비디오 또는 이미지) 찾기
-            // 비디오가 있으면 비디오 우선, 없으면 이미지
             const curVideo = lightMediaWrap.querySelector('video.lightImg');
-            const target = curVideo || lightImg;
+            // 비디오, 이미지, 프레임 모두 회전 대상에 포함
+            const targetsToRotate = [curVideo || lightImg, lightFrame].filter(el => el);
             
-            if(target) {
-                // 현재 transform 확인 후 토글
+            targetsToRotate.forEach(target => {
                 const currentTransform = target.style.transform || '';
                 const isRotated = currentTransform.includes('rotate(180deg)');
                 target.style.transform = isRotated ? 'rotate(0deg)' : 'rotate(180deg)';
-            }
+            });
         };
     }
 
@@ -2066,7 +2065,9 @@
         } else {
             isVideo = false;
         }
-    } else {
+    }
+
+    else {
         // 기본 이미지 사용 시: assets/vid/ 폴더 확인
         // (실제 파일 존재 여부는 로드해봐야 알지만, 여기선 일단 시도)
         const filenameBase = expectedFilenameForCard(card).replace('.png','');
@@ -2074,10 +2075,11 @@
         isVideo = true; // 기본적으로 비디오 시도
     }
     
-    // 프레임 이미지 설정
+    // 프레임 이미지 설정 및 회전 적용
     const filename = expectedFilenameForCard(card);
     const frameUrl = `./assets/img/frame/${filename}`;
     lightFrame.src = frameUrl;
+    lightFrame.style.transform = card.reversed ? 'rotate(180deg)' : 'none'; // 프레임도 회전
 
     if (isVideo) {
         const video = document.createElement('video');
@@ -2099,7 +2101,7 @@
         video.onerror = function() {
             console.log(`비디오 로드 실패: ${mediaUrl}. 이미지로 대체합니다.`);
             this.remove(); // 비디오 태그 제거
-            lightImg.src = imageUrl || `./assets/img/card/${expectedFilenameForCard(card)}`;
+            lightImg.src = imageUrl || `./assets/img/card/${filename}`;
             lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
             lightImg.style.display = 'block';
         };
@@ -2109,7 +2111,7 @@
         
     } else {
         // 비디오가 아예 없는 경우(커스텀인데 비디오 없음)
-        lightImg.src = imageUrl || `./assets/img/card/${expectedFilenameForCard(card)}`;
+        lightImg.src = imageUrl || `./assets/img/card/${filename}`;
         lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
         lightImg.style.display = 'block';
     }
