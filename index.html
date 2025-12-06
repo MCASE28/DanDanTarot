@@ -579,7 +579,24 @@
     box-shadow:0 14px 60px rgba(0,0,0,.6); overflow:hidden;
     display:flex; flex-direction:column; align-items:stretch;
   }
-  .lightImg{width:100%; height:100%; object-fit:contain; background:#080c12}
+  .lightMediaWrap {
+    position: relative;
+    width: 100%;
+    background: #080c12;
+    overflow: hidden;
+  }
+  .lightImg{
+    width:100%; height:100%; object-fit:contain; display:block;
+  }
+  .lightFrame {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 10;
+  }
   .lightCap{
     position: relative;
     padding:calc(10px * var(--fs-scale)) calc(14px * var(--fs-scale));
@@ -1222,7 +1239,10 @@
   <div id="cardOverlay" class="veil hide">
     <div class="light-inner-box">
       <div id="lightWrap" class="lightWrap" role="dialog" aria-modal="true" aria-label="Card preview">
-        <img id="lightImg" class="lightImg" alt="선택 카드">
+        <div id="lightMediaWrap" class="lightMediaWrap">
+            <img id="lightImg" class="lightImg" alt="선택 카드">
+            <img id="lightFrame" class="lightFrame" alt="" role="presentation">
+        </div>
         <div id="lightCap" class="lightCap">
           <span id="lightCapText"></span>
         </div>
@@ -1514,7 +1534,9 @@
   // 라이트박스
   const overlay   = document.getElementById('cardOverlay');
   const lightWrap = document.getElementById('lightWrap');
+  const lightMediaWrap = document.getElementById('lightMediaWrap');
   const lightImg  = document.getElementById('lightImg');
+  const lightFrame = document.getElementById('lightFrame');
   const lightCap  = document.getElementById('lightCap');
 
   /* ====== "현재:" 패널 (GAS API 연동) ====== */
@@ -1980,6 +2002,10 @@
     lightWrap.style.width  = `${Math.floor(imgW)}px`;
     lightWrap.style.height = `${Math.floor(imgH + FS_CAPTION_H)}px`;
     
+    if (lightMediaWrap) {
+        lightMediaWrap.style.height = `${Math.floor(imgH)}px`;
+    }
+    
     const mediaElement = lightWrap.querySelector('video.lightImg') || lightImg;
     if (mediaElement) {
         mediaElement.style.height = `${Math.floor(imgH)}px`;
@@ -1990,7 +2016,7 @@
   }
   function openFullscreen(card){
     // 이전에 생성된 비디오/이미지 정리
-    const oldMedia = lightWrap.querySelector('video.lightImg');
+    const oldMedia = lightMediaWrap.querySelector('video.lightImg');
     if (oldMedia) { oldMedia.remove(); }
     lightImg.style.display = 'none';
     lightImg.src = PLACEHOLDER;
@@ -2014,7 +2040,7 @@
             e.stopPropagation();
             // 현재 표시 중인 미디어(비디오 또는 이미지) 찾기
             // 비디오가 있으면 비디오 우선, 없으면 이미지
-            const curVideo = lightWrap.querySelector('video.lightImg');
+            const curVideo = lightMediaWrap.querySelector('video.lightImg');
             const target = curVideo || lightImg;
             
             if(target) {
@@ -2033,20 +2059,25 @@
     let isVideo = false;
 
     if (isCustomImage) {
-        // 이 카드가 사용자 정의 이미지일 경우: 사용자 정의 비디오를 찾고, 없으면 이 이미지로 대체합니다.
-        mediaUrl = VIDEO_MAP[cardIdValue];
-        if (mediaUrl) {
+        // 사용자가 폴더 선택한 경우: blob URL이 있으면 비디오도 있을 수 있음
+        if (VIDEO_MAP[cardIdValue]) {
+            mediaUrl = VIDEO_MAP[cardIdValue];
             isVideo = true;
         } else {
-            mediaUrl = imageUrl; // 비디오가 없으므로 이미지 URL을 사용합니다.
             isVideo = false;
         }
     } else {
-        // 이 카드가 기본 이미지일 경우: 기본 비디오를 재생합니다.
-        const cardFileNameBase = expectedFilenameForCard(card).replace(/\.png$/, '');
-        mediaUrl = `./assets/vid/${cardFileNameBase}.webm`;
-        isVideo = true;
+        // 기본 이미지 사용 시: assets/vid/ 폴더 확인
+        // (실제 파일 존재 여부는 로드해봐야 알지만, 여기선 일단 시도)
+        const filenameBase = expectedFilenameForCard(card).replace('.png','');
+        mediaUrl = `./assets/vid/${filenameBase}.webm`;
+        isVideo = true; // 기본적으로 비디오 시도
     }
+    
+    // 프레임 이미지 설정
+    const filename = expectedFilenameForCard(card);
+    const frameUrl = `./assets/img/frame/${filename}`;
+    lightFrame.src = frameUrl;
 
     if (isVideo) {
         const video = document.createElement('video');
@@ -2056,25 +2087,29 @@
         video.loop = true;
         video.autoplay = true;
         video.controls = false;
-        video.setAttribute('playsinline', '');
+        video.setAttribute('playsinline', ''); // 모바일 전체화면 방지
         video.src = mediaUrl;
-
-        // 비디오 자동 재생 시작
-        video.play().catch(e => console.warn("Autoplay was prevented:", e));
-
-        // 비디오 로드 실패 시, (기본 또는 사용자) 이미지로 대체
+        
+        // 자동재생 시도
+        video.play().catch(e => {
+            console.warn("Autoplay was prevented:", e);
+        });
+        
+        // 로드 실패 시(비디오가 없는 경우) -> 이미지로 대체
         video.onerror = function() {
             console.log(`비디오 로드 실패: ${mediaUrl}. 이미지로 대체합니다.`);
-            this.remove();
-            lightImg.src = imageUrl; // 항상 해당 카드의 이미지 URL을 사용
+            this.remove(); // 비디오 태그 제거
+            lightImg.src = imageUrl || `./assets/img/card/${expectedFilenameForCard(card)}`;
             lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
             lightImg.style.display = 'block';
         };
         
-        lightWrap.insertBefore(video, lightImg);
+        // 비디오를 래퍼에 추가 (프레임보다 뒤에 오도록)
+        lightMediaWrap.insertBefore(video, lightFrame);
+        
     } else {
-        // 비디오가 아닌 경우 (사용자 이미지만 있고 비디오는 없는 경우)
-        lightImg.src = mediaUrl;
+        // 비디오가 아예 없는 경우(커스텀인데 비디오 없음)
+        lightImg.src = imageUrl || `./assets/img/card/${expectedFilenameForCard(card)}`;
         lightImg.style.transform = card.reversed ? 'rotate(180deg)' : 'none';
         lightImg.style.display = 'block';
     }
