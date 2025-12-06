@@ -1786,8 +1786,9 @@
   };
   const cardId = c => c?.id || c?.eng;
   const expectedFilenameForCard = c => (
-    c.type==='major' ? `${MAJOR_NAME_MAP[c.num]}.png`
-      : (!c.court ? `${c.suit}${String(c.num).padStart(2,'0')}.png` : `${c.suit}${c.rank}.png`)
+    (c.type==='major' ? MAJOR_NAME_MAP[c.num]
+      : (!c.court ? `${c.suit}${String(c.num).padStart(2,'0')}` : `${c.suit}${c.rank}`)
+    ).toLowerCase() + '.png'
   );
 
   /* 폴더 선택(webkitdirectory) + 로그 (수정됨) */
@@ -1835,8 +1836,11 @@
     }, {});
 
     // 2. 사용자 이미지 덮어쓰기
+    // 사용자가 업로드한 파일명도 소문자로 비교하여 매칭
     for (const file of imgFiles) {
-        const card = cardByFileName[file.name];
+        // 파일명을 소문자로 변환하여 매칭 시도
+        const lowerName = file.name.toLowerCase();
+        const card = cardByFileName[lowerName];
         if (card) {
             finalImageMap[cardId(card)] = URL.createObjectURL(file);
             userImgMatchedCount++;
@@ -1845,8 +1849,9 @@
 
     // 3. 사용자 비디오 매칭
     for (const file of vidFiles) {
-        const videoNameBase = file.name.replace(/\.webm$/i, '');
-        // 비디오 파일명 (예: 'Strength.webm')과 일치하는 카드를 찾음
+        const videoNameBase = file.name.replace(/\.webm$/i, '').toLowerCase();
+        // 비디오 파일명 (예: 'strength')과 일치하는 카드를 찾음
+        // expectedFilenameForCard는 이제 'strength.png'를 반환하므로 .png를 떼고 비교
         const card = ALL_CARDS.find(c => expectedFilenameForCard(c).replace(/\.png$/i, '') === videoNameBase);
         if (card) {
             finalVideoMap[cardId(card)] = URL.createObjectURL(file);
@@ -1855,12 +1860,12 @@
     }
 
     const expectedImgNames = ALL_CARDS.map(expectedFilenameForCard);
-    const userImgNames = imgFiles.map(f => f.name);
+    const userImgNames = imgFiles.map(f => f.name.toLowerCase()); // 비교를 위해 소문자 변환
     const missingImgs = expectedImgNames.filter(name => !userImgNames.includes(name));
     const extraImgs = userImgNames.filter(name => !expectedImgNames.includes(name));
     
     const expectedVidNames = ALL_CARDS.map(c => expectedFilenameForCard(c).replace(/\.png$/, '.webm'));
-    const userVidNames = vidFiles.map(f => f.name);
+    const userVidNames = vidFiles.map(f => f.name.toLowerCase());
     const extraVids = userVidNames.filter(name => !expectedVidNames.includes(name));
 
 
@@ -1915,8 +1920,8 @@
     const tip =
       `\n\n※ 참고: 선택한 폴더 바로 아래에 'img', 'vid' 폴더가 있어야 합니다.\n` +
       `   파일명은 규칙과 대소문자까지 일치해야 합니다.\n` +
-      `   이미지: (폴더)/img/Wands01.png\n`+ 
-      `   비디오: (폴더)/vid/Wands01.webm\n`;
+      `   이미지: (폴더)/img/wands01.png\n`+ 
+      `   비디오: (폴더)/vid/wands01.webm\n`;
     
     const missBlock  = missing.length ? `\n[이미지 누락(기본값 사용) ${missing.length}개]\n- ` + missing.join('\n- ') : ``;
     const imgExtraBlock = imgExtras.length  ? `\n\n[여분 이미지(규칙 밖) ${imgExtras.length}개]\n- ` + imgExtras.join('\n- ') : ``;
@@ -1940,25 +1945,15 @@
       const hasImg = url ? ' has-img' : '';
       const filename = expectedFilenameForCard(c);
       
-      // 카드 이미지와 프레임 이미지를 별도 img 태그로 구성
-      // 사용자 선택 폴더(blob:)인 경우 onerror 처리가 필요없지만, 기본 이미지인 경우 필요함.
-      // 하지만 blob url에 대해서도 onerror를 달아도 해가 되진 않음.
-      // 단, blob url은 대소문자 변환이 의미가 없음.
-      
-      const isBlob = url.startsWith('blob:');
       const cardSrc = url || `./assets/img/card/${filename}`;
       const frameSrc = `./assets/img/frame/${filename}`;
-      
-      // onerror 핸들러: blob이 아닐 때만 fixImageSrc 호출
-      const cardErr = isBlob ? '' : `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'card')"`;
-      const frameErr = `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'frame')"`;
 
       return `
         <div class="cardItem" data-idx="${idx}" title="${displayName}">
           <div class="cardBox">
             <div class="card${revCls}${hasImg} img-stack" aria-label="${displayName}">
-                <img src="${cardSrc}" class="card-layer" alt="${displayName}" ${cardErr}>
-                <img src="${frameSrc}" class="frame-layer" alt="" ${frameErr}>
+                <img src="${cardSrc}" class="card-layer" alt="${displayName}">
+                <img src="${frameSrc}" class="frame-layer" alt="">
             </div>
             <div class="cap-row">
               <div class="cap" title="${displayName}">${displayName}</div>
@@ -1970,32 +1965,6 @@
         </div>`;
     }).join('');
   }
-
-  // [신규] 이미지 로딩 에러 시 대소문자 변환 재시도 함수
-  window.fixImageSrc = function(img, baseName, type) {
-      // type: 'card' or 'frame'
-      // baseName: 'Coins01' (CamelCase)
-      
-      // 무한 루프 방지
-      if (img.dataset.retryDone) return;
-      
-      const ext = '.png';
-      
-      if (!img.dataset.tryUpper) {
-          // 1차 시도: 대문자
-          img.dataset.tryUpper = "1";
-          img.src = `./assets/img/${type}/${baseName.toUpperCase()}${ext}`;
-      } else if (!img.dataset.tryLower) {
-          // 2차 시도: 소문자
-          img.dataset.tryLower = "1";
-          img.src = `./assets/img/${type}/${baseName.toLowerCase()}${ext}`;
-      } else {
-          // 모두 실패
-          img.dataset.retryDone = "1";
-          // 필요 시 플레이스홀더나 투명 이미지로 변경
-          // img.src = PLACEHOLDER; 
-      }
-  };
   function setDecide(on){ on ? elDecide.removeAttribute('disabled') : elDecide.setAttribute('disabled','true'); }
   function updateReset(){ picked.length ? elReset.removeAttribute('disabled') : elReset.setAttribute('disabled','true'); }
 

@@ -241,8 +241,9 @@
   // --- Functions (copied from index.html) ---
   const cardId = c => c?.id || c?.eng;
   const expectedFilenameForCard = c => (
-    c.type==='major' ? `${MAJOR_NAME_MAP[c.num]}.png`
-      : (!c.court ? `${c.suit}${String(c.num).padStart(2,'0')}.png` : `${c.suit}${c.rank}.png`)
+    (c.type==='major' ? MAJOR_NAME_MAP[c.num]
+      : (!c.court ? `${c.suit}${String(c.num).padStart(2,'0')}` : `${c.suit}${c.rank}`)
+    ).toLowerCase() + '.png'
   );
 
   function getTarotDB() {
@@ -438,14 +439,10 @@
           const cardSrc = url || `./assets/img/card/${filename}`;
           const frameSrc = `./assets/img/frame/${filename}`;
           
-          const isBlob = url && url.startsWith('blob:');
-          const cardErr = isBlob ? '' : `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'card')"`;
-          const frameErr = `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'frame')"`;
-          
           html += `
             <div class="card-thumb img-stack" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}">
-                <img src="${cardSrc}" class="card-layer" alt="${card.displayName}" ${cardErr}>
-                <img src="${frameSrc}" class="frame-layer" alt="" ${frameErr}>
+                <img src="${cardSrc}" class="card-layer" alt="${card.displayName}">
+                <img src="${frameSrc}" class="frame-layer" alt="">
             </div>`;
         });
         html += '</div>';
@@ -462,15 +459,10 @@
             const cardSrc = url || `./assets/img/card/${filename}`;
             const frameSrc = `./assets/img/frame/${filename}`;
             
-            // onerror 핸들러 추가
-            const isBlob = url && url.startsWith('blob:');
-            const cardErr = isBlob ? '' : `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'card')"`;
-            const frameErr = `onerror="fixImageSrc(this, '${filename.replace('.png','')}', 'frame')"`;
-            
             const divHTML = `
             <div class="card-thumb img-stack" data-card-id="${cardId(card)}" title="${card.displayName}" role="img" aria-label="${card.displayName}">
-                <img src="${cardSrc}" class="card-layer" alt="${card.displayName}" ${cardErr}>
-                <img src="${frameSrc}" class="frame-layer" alt="" ${frameErr}>
+                <img src="${cardSrc}" class="card-layer" alt="${card.displayName}">
+                <img src="${frameSrc}" class="frame-layer" alt="">
             </div>`;
             
             if (card.type === 'major') majorHTML += divHTML;
@@ -493,21 +485,6 @@
           });
       });
     }
-    
-    // [신규] 이미지 로딩 에러 시 대소문자 변환 재시도 함수 (Global scope for inline onerror)
-    window.fixImageSrc = function(img, baseName, type) {
-      if (img.dataset.retryDone) return;
-      const ext = '.png';
-      if (!img.dataset.tryUpper) {
-          img.dataset.tryUpper = "1";
-          img.src = `./assets/img/${type}/${baseName.toUpperCase()}${ext}`;
-      } else if (!img.dataset.tryLower) {
-          img.dataset.tryLower = "1";
-          img.src = `./assets/img/${type}/${baseName.toLowerCase()}${ext}`;
-      } else {
-          img.dataset.retryDone = "1";
-      }
-    };
 
     // --- Button Generation and Event Listeners ---
     const btnContainer = document.getElementById('custom-btn-container');
