@@ -27,6 +27,9 @@
        ✅ 스타일 커스터마이징 영역
        ========================================================= */
 
+    /* [bg투명도] 뒷배경 이미지 투명도 (0.0 ~ 1.0) */
+    --bg-opacity: 0.05;
+
     /* [셔플 텍스트 효과] */
     --shuffle-text-content: "카 드 를  섞 는 중 .. playing_cards";
     --shuffle-text-color: #ffffff;
@@ -167,9 +170,22 @@
     font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Noto Sans,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
   }
 
+  /* 배경 이미지 (고정, 중앙) */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: url('./assets/img/bg.png') no-repeat center center;
+    background-size: auto;
+    opacity: var(--bg-opacity);
+    z-index: 0;
+    pointer-events: none;
+  }
+  
   /* 앱 컨테이너: 기준 폭으로 가운데 정렬 */
   .app{
     position:relative;
+    z-index: 1;
     width:var(--app-width);
     min-height:100vh;
     margin:0 auto;
@@ -1428,7 +1444,7 @@
      ========================================================= */
   const MEMO_MIN_HEIGHT_PX = 720;
 
-  const TITLE_URL = './title.png';
+  const TITLE_URL = './assets/img/title.png';
   const PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
   let ALL_CARDS = [], IMAGE_MAP = {}, VIDEO_MAP = {}, selected = null, picked = [];
@@ -1720,7 +1736,7 @@
     const map = {};
     for (const card of ALL_CARDS) {
         const filename = expectedFilenameForCard(card);
-        map[cardId(card)] = `./assets/img/${filename}`;
+        map[cardId(card)] = `./assets/img/card/${filename}`;
     }
     return map;
   }
@@ -1897,12 +1913,13 @@
       const displayName = c.displayName || c.eng;
       const revCls = c.reversed ? ' rev' : '';
       const hasImg = url ? ' has-img' : '';
+      const filename = expectedFilenameForCard(c);
 
       return `
         <div class="cardItem" data-idx="${idx}" title="${displayName}">
           <div class="cardBox">
             <div class="card${revCls}${hasImg}"
-                style="${url ? `background-image:url('${url}')` : ''}"
+                style="${url ? `background-image:url('./assets/img/frame/${filename}'), url('${url}')` : ''}"
                 aria-label="${displayName}"></div>
             <div class="cap-row">
               <div class="cap" title="${displayName}">${displayName}</div>
